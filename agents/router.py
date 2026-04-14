@@ -1,9 +1,18 @@
 from google import genai
 from google.genai import types
 from pydantic import BaseModel
-import os
 
-from agents import backpain, psoriasis, anorectal, post_delivery, rejuvenation, weight, diabetes, kadambary_cosmetic
+from agents import (
+    expert_backpain,
+    expert_psoriasis,
+    expert_anorectal,
+    expert_post_delivery,
+    expert_rejuvenation,
+    expert_weight_loss,
+    expert_weight_gain,
+    expert_diabetes,
+    expert_kadambary_cosmetic
+)
 
 class RouteResponse(BaseModel):
     category: str
@@ -18,7 +27,8 @@ def get_expert_response(text: str, parts: list = None) -> str:
 - anorectal
 - post_delivery
 - rejuvenation
-- weight
+- weight_loss
+- weight_gain
 - diabetes
 - kadambary_cosmetic
 
@@ -55,15 +65,16 @@ Respond ONLY with the exact category name.
 
     # 2. Dispatch to Expert
     experts = {
-        "backpain": backpain,
-        "psoriasis": psoriasis,
-        "anorectal": anorectal,
-        "post_delivery": post_delivery,
-        "rejuvenation": rejuvenation,
-        "weight": weight,
-        "diabetes": diabetes,
-        "kadambary_cosmetic": kadambary_cosmetic,
+        "backpain": expert_backpain,
+        "psoriasis": expert_psoriasis,
+        "anorectal": expert_anorectal,
+        "post_delivery": expert_post_delivery,
+        "rejuvenation": expert_rejuvenation,
+        "weight_loss": expert_weight_loss,
+        "weight_gain": expert_weight_gain,
+        "diabetes": expert_diabetes,
+        "kadambary_cosmetic": expert_kadambary_cosmetic,
     }
 
-    expert_module = experts.get(category, rejuvenation)
+    expert_module = experts.get(category, expert_rejuvenation)
     return expert_module.process_request(text, parts)
