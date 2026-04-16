@@ -1,6 +1,8 @@
 from google import genai
 from google.genai import types
 
+EXPERT_KNOWLEDGE = "Typical therapies include Rasayana Chikitsa (rejuvenation therapy), Shirodhara (warm oil poured on forehead for stress), and Panchakarma detox."
+
 def process_request(text: str, parts: list = None) -> str:
     client = genai.Client()
     model = 'gemini-3-flash-preview'
@@ -39,7 +41,7 @@ A - Authority: Explain how we treat it using exactly 3 punchy bullet points (•
 C - Closing (Appointment Focus): Confidently pivot to booking. E.g., 'Let's get you in front of our doctors. What date and time works best for your consultation?'
 
 You specialize in Rejuvenation."""
-        )
+        ) + "\n\nOUR TREATMENTS:\n" + EXPERT_KNOWLEDGE
     )
 
     contents = []
