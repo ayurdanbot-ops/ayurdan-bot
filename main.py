@@ -19,6 +19,7 @@ def root():
 @app.post("/webhook")
 async def webhook(request: Request, background_tasks: BackgroundTasks):
     data = await request.json()
+    print(f'INCOMING ZOKO PAYLOAD: {data}')
 
     # Simple Zoko payload extraction logic
     # Assuming zoko sends standard webhook structure like { "message": { "text": "hello", "sender": "123" } }
