@@ -3,7 +3,7 @@ from google.genai import types
 
 EXPERT_KNOWLEDGE = "Typical skin treatments include Takradhara (medicated buttermilk poured over forehead/body), Lepanam (herbal paste application), and internal purification therapies."
 
-def process_request(text: str, parts: list = None) -> str:
+def process_request(text: str, parts: list = None, history_text: str = "", state_notes: str = "") -> str:
     client = genai.Client()
     model = 'gemini-3-flash-preview'
 
@@ -46,14 +46,16 @@ Do NOT pity the patient. Never use words expressing sorrow, pity, or overly dram
 Do validate their reality. Acknowledge their frustration or pain professionally ("I understand how difficult this condition can be..."), and immediately pivot to clinical confidence and authority ("...our 100-year legacy has equipped us to help you overcome this.").
 
 You specialize in Psoriasis."""
-        ) + "\n\nOUR TREATMENTS:\n" + EXPERT_KNOWLEDGE
+        ) + "\n\nOUR TREATMENTS:\n" + EXPERT_KNOWLEDGE + state_notes
     )
 
     contents = []
     if parts:
         contents.extend(parts)
+    if history_text:
+        contents.append(f"Chat History:\n{history_text}")
     if text:
-        contents.append(text)
+        contents.append(f"Current User Input: {text}")
 
     if not contents:
         return "No content provided."

@@ -7,6 +7,7 @@ import asyncio
 
 from agents.router import get_expert_response
 from zoko_client import send_zoko_message
+from memory_manager import get_context, add_interaction
 
 load_dotenv()
 
@@ -50,9 +51,36 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
         except Exception as e:
             print(f"Failed to download media from {media_url}: {e}")
 
+    # Retrieve context
+    history_text, state_notes = get_context(phone_number)
+
+    from agents.router import handle_greeting
+
     # Running the routing logic and gemini generation in a thread pool to avoid blocking the event loop
     loop = asyncio.get_event_loop()
-    response_text = await loop.run_in_executor(None, get_expert_response, user_message, parts)
+
+    # If there is no history at all, force the Welcome greeting.
+    if not history_text.strip():
+        response_text = await loop.run_in_executor(
+            None,
+            handle_greeting,
+            user_message,
+            parts,
+            history_text,
+            state_notes
+        )
+    else:
+        response_text = await loop.run_in_executor(
+            None,
+            get_expert_response,
+            user_message,
+            parts,
+            history_text,
+            state_notes
+        )
+
+    # Save the interaction to update history and patient state
+    add_interaction(phone_number, user_message, response_text)
 
     # Use background tasks to prevent waiting on outgoing I/O for webhook ack
     background_tasks.add_task(send_zoko_message, phone_number, response_text)

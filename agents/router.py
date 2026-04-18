@@ -37,7 +37,7 @@ WELCOME_BLUEPRINT = """നമസ്കാരം! ആയുർദാൻ ആയു
 class RouteResponse(BaseModel):
     category: str
 
-def handle_greeting(text: str, parts: list = None) -> str:
+def handle_greeting(text: str, parts: list = None, history_text: str = "", state_notes: str = "") -> str:
     client = genai.Client()
     model = 'gemini-3-flash-preview'
 
@@ -54,6 +54,8 @@ def handle_greeting(text: str, parts: list = None) -> str:
     contents = [f"Welcome Blueprint to translate:\n{WELCOME_BLUEPRINT}"]
     if parts:
         contents.extend(parts)
+    if history_text:
+        contents.append(f"Chat History:\n{history_text}")
     if text:
         contents.append(f"User Input to detect language from: {text}")
 
@@ -64,7 +66,7 @@ def handle_greeting(text: str, parts: list = None) -> str:
     )
     return response.text
 
-def get_expert_response(text: str, parts: list = None) -> str:
+def get_expert_response(text: str, parts: list = None, history_text: str = "", state_notes: str = "") -> str:
     # 1. Route Intent
     client = genai.Client()
 
@@ -89,8 +91,10 @@ Respond ONLY with the exact category name.
     if parts:
         contents.extend(parts)
     contents.append(routing_prompt)
+    if history_text:
+        contents.append(f"Chat History:\n{history_text}")
     if text:
-        contents.append(f"User Input: {text}")
+        contents.append(f"Current User Input: {text}")
 
     config = types.GenerateContentConfig(
         response_mime_type="application/json",
@@ -113,7 +117,7 @@ Respond ONLY with the exact category name.
 
     # 2. Dispatch to Expert
     if category == "greeting":
-        return handle_greeting(text, parts)
+        return handle_greeting(text, parts, history_text, state_notes)
 
     experts = {
         "backpain": expert_backpain,
@@ -128,4 +132,4 @@ Respond ONLY with the exact category name.
     }
 
     expert_module = experts.get(category, expert_rejuvenation)
-    return expert_module.process_request(text, parts)
+    return expert_module.process_request(text, parts, history_text, state_notes)
