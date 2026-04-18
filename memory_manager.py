@@ -1,0 +1,83 @@
+import re
+
+chat_history = {}
+patient_state = {}
+
+def init_user_if_needed(phone_number: str):
+    if phone_number not in chat_history:
+        chat_history[phone_number] = []
+    if phone_number not in patient_state:
+        patient_state[phone_number] = {
+            "asked_age": False,
+            "asked_gender": False,
+            "active_treatment": None
+        }
+
+def update_patient_state(phone_number: str, user_message: str, bot_response: str):
+    init_user_if_needed(phone_number)
+    state = patient_state[phone_number]
+
+    # Simple keyword scanning logic
+    user_msg_lower = user_message.lower()
+    bot_msg_lower = bot_response.lower()
+
+    history = chat_history.get(phone_number, [])
+    # Look at the last bot message before this interaction
+    prev_bot_msg = ""
+    for msg in reversed(history):
+        if msg["role"] == "model":
+            prev_bot_msg = msg["content"].lower()
+            break
+
+    # If bot asked about age in a previous interaction or this one, and user provided a number
+    if "age" in bot_msg_lower or "വയസ്സ്" in bot_msg_lower or "വയസ്" in bot_msg_lower or "age" in prev_bot_msg or "വയസ്സ്" in prev_bot_msg or "വയസ്" in prev_bot_msg:
+        # User replied with a number?
+        if any(char.isdigit() for char in user_message):
+            state["asked_age"] = True
+
+    # Gender keywords (although strictly banned from asking directly, bot might infer or user might volunteer)
+    gender_keywords = ["male", "female", "man", "woman", "boy", "girl", "പുരുഷൻ", "സ്ത്രീ", "ആൺ", "പെൺ"]
+    if any(k in user_msg_lower for k in gender_keywords):
+        state["asked_gender"] = True
+
+def add_interaction(phone_number: str, user_message: str, bot_response: str):
+    init_user_if_needed(phone_number)
+    history = chat_history[phone_number]
+
+    # Append interactions
+    if user_message:
+        history.append({"role": "user", "content": user_message})
+    if bot_response:
+        history.append({"role": "model", "content": bot_response})
+
+    # Keep only the last 10 interactions (20 items since each interaction has 2)
+    # The prompt says "last 10 interactions", let's keep 20 messages.
+    if len(history) > 20:
+        chat_history[phone_number] = history[-20:]
+
+    update_patient_state(phone_number, user_message, bot_response)
+
+def get_context(phone_number: str):
+    init_user_if_needed(phone_number)
+
+    history = chat_history[phone_number]
+    state = patient_state[phone_number]
+
+    history_text = ""
+    for msg in history:
+        role = "User" if msg["role"] == "user" else "Ayur Care"
+        history_text += f"{role}: {msg['content']}\n"
+
+    # Build state note
+    notes = []
+    if state["asked_age"]:
+        notes.append("age")
+    if state["asked_gender"]:
+        notes.append("gender")
+
+    state_notes = ""
+    if notes:
+        known = " and ".join(notes)
+        state_notes = f"\nSystem Note: You already know this patient's {known}. DO NOT ask for them again. Move straight to the symptom or treatment."
+
+    return history_text, state_notes
