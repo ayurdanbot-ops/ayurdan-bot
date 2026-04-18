@@ -1,27 +1,32 @@
 import re
+import hashlib
 
 chat_history = {}
 patient_state = {}
 
-def init_user_if_needed(phone_number: str):
-    if phone_number not in chat_history:
-        chat_history[phone_number] = []
-    if phone_number not in patient_state:
-        patient_state[phone_number] = {
+def hash_user_id(phone_number: str) -> str:
+    """Returns a SHA-256 hash of the phone number to prevent PII exposure."""
+    return hashlib.sha256(phone_number.encode('utf-8')).hexdigest()
+
+def init_user_if_needed(hashed_id: str):
+    if hashed_id not in chat_history:
+        chat_history[hashed_id] = []
+    if hashed_id not in patient_state:
+        patient_state[hashed_id] = {
             "asked_age": False,
             "asked_gender": False,
             "active_treatment": None
         }
 
-def update_patient_state(phone_number: str, user_message: str, bot_response: str):
-    init_user_if_needed(phone_number)
-    state = patient_state[phone_number]
+def update_patient_state(hashed_id: str, user_message: str, bot_response: str):
+    init_user_if_needed(hashed_id)
+    state = patient_state[hashed_id]
 
     # Simple keyword scanning logic
     user_msg_lower = user_message.lower()
     bot_msg_lower = bot_response.lower()
 
-    history = chat_history.get(phone_number, [])
+    history = chat_history.get(hashed_id, [])
     # Look at the last bot message before this interaction
     prev_bot_msg = ""
     for msg in reversed(history):
@@ -41,8 +46,9 @@ def update_patient_state(phone_number: str, user_message: str, bot_response: str
         state["asked_gender"] = True
 
 def add_interaction(phone_number: str, user_message: str, bot_response: str):
-    init_user_if_needed(phone_number)
-    history = chat_history[phone_number]
+    hashed_id = hash_user_id(phone_number)
+    init_user_if_needed(hashed_id)
+    history = chat_history[hashed_id]
 
     # Append interactions
     if user_message:
@@ -53,15 +59,16 @@ def add_interaction(phone_number: str, user_message: str, bot_response: str):
     # Keep only the last 10 interactions (20 items since each interaction has 2)
     # The prompt says "last 10 interactions", let's keep 20 messages.
     if len(history) > 20:
-        chat_history[phone_number] = history[-20:]
+        chat_history[hashed_id] = history[-20:]
 
-    update_patient_state(phone_number, user_message, bot_response)
+    update_patient_state(hashed_id, user_message, bot_response)
 
 def get_context(phone_number: str):
-    init_user_if_needed(phone_number)
+    hashed_id = hash_user_id(phone_number)
+    init_user_if_needed(hashed_id)
 
-    history = chat_history[phone_number]
-    state = patient_state[phone_number]
+    history = chat_history[hashed_id]
+    state = patient_state[hashed_id]
 
     history_text = ""
     for msg in history:
