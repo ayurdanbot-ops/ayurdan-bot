@@ -18,30 +18,17 @@ def root():
 
 @app.post("/webhook")
 async def webhook(request: Request, background_tasks: BackgroundTasks):
-    data = await request.json()
-    print(f'INCOMING ZOKO PAYLOAD: {data}')
+    payload = await request.json()
+    print(f'INCOMING ZOKO PAYLOAD: {payload}')
 
-    # Simple Zoko payload extraction logic
-    # Assuming zoko sends standard webhook structure like { "message": { "text": "hello", "sender": "123" } }
-    # Or based on instruction 'extract phone number and message/media'.
+    phone_number = payload.get('platformSenderId')
+    user_message = payload.get('text')
 
-    phone_number = data.get("sender") or data.get("phone") or data.get("recipient")
+    if not phone_number or not user_message:
+        return {"status": "ignored, missing data"}
 
-    # Try to find message details
-    text = data.get("text", "")
-    media_url = data.get("media_url")
-    media_mime_type = data.get("media_mime_type")
-
-    # If the payload is nested like Zoko's typically are
-    if "message" in data and isinstance(data["message"], dict):
-        text = text or data["message"].get("text", "")
-        media_url = media_url or data["message"].get("url")
-        media_mime_type = media_mime_type or data["message"].get("mimeType")
-        phone_number = phone_number or data.get("sender")
-
-    if not phone_number:
-        # Just return early if it's a test payload or missing required data to reply
-        return {"status": "ignored", "reason": "no phone number provided"}
+    media_url = payload.get("media_url")
+    media_mime_type = payload.get("media_mime_type")
 
     parts = []
 
@@ -65,7 +52,7 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
 
     # Running the routing logic and gemini generation in a thread pool to avoid blocking the event loop
     loop = asyncio.get_event_loop()
-    response_text = await loop.run_in_executor(None, get_expert_response, text, parts)
+    response_text = await loop.run_in_executor(None, get_expert_response, user_message, parts)
 
     # Use background tasks to prevent waiting on outgoing I/O for webhook ack
     background_tasks.add_task(send_zoko_message, phone_number, response_text)
