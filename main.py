@@ -7,7 +7,7 @@ import asyncio
 
 from agents.router import get_expert_response
 from zoko_client import send_zoko_message
-from memory_manager import get_context, add_interaction
+from memory_manager import get_context, add_interaction, clean_expired_sessions
 
 load_dotenv()
 
@@ -84,5 +84,6 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
 
     # Use background tasks to prevent waiting on outgoing I/O for webhook ack
     background_tasks.add_task(send_zoko_message, phone_number, response_text)
+    background_tasks.add_task(clean_expired_sessions)
 
     return {"status": "success"}
