@@ -17,6 +17,7 @@ def init_user_if_needed(hashed_id: str):
             "asked_age": False,
             "asked_gender": False,
             "active_treatment": None,
+            "active_expert": None,
             "last_active": time.time()
         }
 
@@ -111,3 +112,14 @@ async def clean_expired_sessions():
             del chat_history[k]
         if k in patient_state:
             del patient_state[k]
+
+
+def get_active_expert(phone_number: str):
+    hashed_id = hash_user_id(phone_number)
+    init_user_if_needed(hashed_id)
+    return patient_state[hashed_id].get("active_expert")
+
+def set_active_expert(phone_number: str, expert: str):
+    hashed_id = hash_user_id(phone_number)
+    init_user_if_needed(hashed_id)
+    patient_state[hashed_id]["active_expert"] = expert
