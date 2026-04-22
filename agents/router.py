@@ -1,6 +1,6 @@
 from google import genai
 from google.genai import types
-from pydantic import BaseModel
+import re
 
 from agents import (
     expert_backpain,
@@ -13,8 +13,9 @@ from agents import (
     expert_diabetes,
     expert_kadambary_cosmetic
 )
+from memory_manager import get_active_expert, set_active_expert
 
-WELCOME_BLUEPRINT = """നമസ്കാരം! ആയുർദാൻ ആയുർവേദ ഹോസ്പിറ്റലിലേക്ക് അങ്ങേയ്ക്ക് സ്വാഗതം❤️
+WELCOME_BLUEPRINT = '''നമസ്കാരം! ആയുർദാൻ ആയുർവേദ ഹോസ്പിറ്റലിലേക്ക് അങ്ങേയ്ക്ക് സ്വാഗതം❤️
 
 താങ്കളുടെ ആരോഗ്യത്തെക്കുറിച്ചുള്ള ആശങ്കകൾ എന്തുതന്നെയായാലും, ഇനി ആശ്വസിക്കാം. ഒരു കുടുംബാംഗത്തിന്റെ കരുതലോടും സ്നേഹത്തോടും കൂടി നിങ്ങളെ പരിചരിക്കാൻ ഞങ്ങൾ ഇവിടെയുണ്ട്.
 
@@ -32,12 +33,26 @@ WELCOME_BLUEPRINT = """നമസ്കാരം! ആയുർദാൻ ആയു
 
 💅 *Rejuvenation & SPA*
 
-💆‍♀️ *Body Massage അന്വേഷണങ്ങൾ*"""
+💆‍♀️ *Body Massage അന്വേഷണങ്ങൾ*'''
 
-class RouteResponse(BaseModel):
-    category: str
 
-def handle_greeting(text: str, parts: list = None, history_text: str = "", state_notes: str = "") -> str:
+RECEPTIONIST_PROMPT = '''
+You are the Receptionist and Triage Expert at Ayurdan Ayurveda Hospital.
+Your ONLY job is to gather mandatory patient details and route them to the correct specialist.
+
+STRICT RULES:
+1. ONE QUESTION LIMIT: Never ask more than one question at a time.
+2. MANDATORY DATA: You MUST know the patient's Age, whether they are Male/Female, and their primary symptom.
+3. GATHERING PHASE: If you do not have all 3 pieces of information, politely ask the patient for the missing piece. Use professional empathy.
+4. THE HANDOFF (SILENT ROUTING): Once you have Age, Male/Female, and the Symptom, you must STOP talking to the patient. You must analyze the symptom and output EXACTLY ONE of the following routing tags, and absolutely nothing else:
+   - [ROUTE: PSORIASIS] (For psoriasis, itching, scaling, skin issues)
+   - [ROUTE: HAIR] (For hair fall, dandruff, baldness, Kadambary clinic)
+   - [ROUTE: BACKPAIN] (For back pain, disc bulge, spine issues)
+   - [ROUTE: GENERAL] (For anything else, appointments, or general wellness)
+'''
+
+
+def handle_greeting(text: str, parts: list, history_text: str) -> str:
     client = genai.Client()
     model = 'gemini-3-flash-preview'
 
@@ -45,7 +60,8 @@ def handle_greeting(text: str, parts: list = None, history_text: str = "", state
         thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_level='MINIMAL'),
         system_instruction=(
             "You are Ayur Care. The user has just sent a greeting or a first message."
-            "Your ONLY job is to detect the language/script of the user's input and translate the provided Welcome Blueprint into that exact native language/script.\n"
+            "Your ONLY job is to detect the language/script of the user's input and translate the provided Welcome Blueprint into that exact native language/script.
+"
             "Strict Language Rule: The bot must translate the blueprint entirely into the user's detected native language/script (e.g., pure Malayalam script, or pure English). "
             "STRICTLY FORBIDDEN: Do not use or output 'Manglish' (Malayalam written in the English alphabet) unless the user explicitly asks for it or uses it first."
         )
@@ -64,72 +80,72 @@ def handle_greeting(text: str, parts: list = None, history_text: str = "", state
         contents=contents,
         config=config,
     )
-    return response.text
+    return response.text.strip()
 
-def get_expert_response(text: str, parts: list = None, history_text: str = "", state_notes: str = "") -> str:
-    # 1. Route Intent
+def call_receptionist(text: str, parts: list, history_text: str) -> str:
     client = genai.Client()
+    model = 'gemini-3-flash-preview'
 
-    routing_prompt = """Classify the user's intent based on the input provided into one of the following exact categories:
-- greeting
-- backpain
-- psoriasis
-- anorectal
-- post_delivery
-- rejuvenation
-- weight_loss
-- weight_gain
-- diabetes
-- kadambary_cosmetic
-
-If it is a general greeting, an introductory message, or unclear, pick 'greeting'.
-If it is about hair care, cosmetic, or beauty, use 'kadambary_cosmetic'.
-Respond ONLY with the exact category name.
-"""
+    config = types.GenerateContentConfig(
+        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_level='MINIMAL'),
+        system_instruction=RECEPTIONIST_PROMPT
+    )
 
     contents = []
     if parts:
         contents.extend(parts)
-    contents.append(routing_prompt)
     if history_text:
         contents.append(f"Chat History:\n{history_text}")
     if text:
         contents.append(f"Current User Input: {text}")
 
-    config = types.GenerateContentConfig(
-        response_mime_type="application/json",
-        response_schema=RouteResponse,
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_level='MINIMAL'),
+    response = client.models.generate_content(
+        model=model,
+        contents=contents,
+        config=config,
     )
+    return response.text.strip()
 
-    try:
-        route_res = client.models.generate_content(
-            model='gemini-3-flash-preview',
-            contents=contents,
-            config=config,
-        )
-        category = route_res.parsed.category if route_res.parsed else "greeting"
-    except Exception as e:
-        print(f"Routing failed: {e}")
-        category = "greeting"
-
-    print(f"Routed to category: {category}")
-
-    # 2. Dispatch to Expert
-    if category == "greeting":
-        return handle_greeting(text, parts, history_text, state_notes)
-
+def dispatch_to_expert(expert_tag: str, text: str, parts: list, history_text: str, state_notes: str) -> str:
     experts = {
-        "backpain": expert_backpain,
-        "psoriasis": expert_psoriasis,
-        "anorectal": expert_anorectal,
-        "post_delivery": expert_post_delivery,
-        "rejuvenation": expert_rejuvenation,
-        "weight_loss": expert_weight_loss,
-        "weight_gain": expert_weight_gain,
-        "diabetes": expert_diabetes,
-        "kadambary_cosmetic": expert_kadambary_cosmetic,
+        "BACKPAIN": expert_backpain,
+        "PSORIASIS": expert_psoriasis,
+        "HAIR": expert_kadambary_cosmetic,
+        "GENERAL": expert_rejuvenation
     }
-
-    expert_module = experts.get(category, expert_rejuvenation)
+    expert_module = experts.get(expert_tag, expert_rejuvenation)
     return expert_module.process_request(text, parts, history_text, state_notes)
+
+def get_expert_response(phone_number: str, text: str, parts: list = None, history_text: str = "", state_notes: str = "") -> str:
+    active_expert = get_active_expert(phone_number)
+
+    if not history_text.strip():
+        # First message of the session, trigger dynamic Welcome message
+        return handle_greeting(text, parts, history_text)
+
+    if active_expert:
+        # Bypass Receptionist
+        return dispatch_to_expert(active_expert, text, parts, history_text, state_notes)
+
+    # No active expert, send to Receptionist
+    receptionist_reply = call_receptionist(text, parts, history_text)
+
+    # Check for Routing Tag
+    match = re.search(r'\[ROUTE:\s*(.*?)\]', receptionist_reply, re.IGNORECASE)
+
+    if match:
+        # We found a routing tag
+        route_tag = match.group(1).upper()
+
+        # Valid tags safety
+        if route_tag not in ["PSORIASIS", "HAIR", "BACKPAIN", "GENERAL"]:
+            route_tag = "GENERAL"
+
+        # Set Active Expert
+        set_active_expert(phone_number, route_tag)
+
+        # Forward everything to expert silently
+        return dispatch_to_expert(route_tag, text, parts, history_text, state_notes)
+
+    # Otherwise, it's a conversational gathering message. Return it to the user.
+    return receptionist_reply

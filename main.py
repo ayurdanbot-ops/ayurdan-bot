@@ -54,30 +54,18 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
     # Retrieve context
     history_text, state_notes = get_context(phone_number)
 
-    from agents.router import handle_greeting
-
     # Running the routing logic and gemini generation in a thread pool to avoid blocking the event loop
     loop = asyncio.get_event_loop()
 
-    # If there is no history at all, force the Welcome greeting.
-    if not history_text.strip():
-        response_text = await loop.run_in_executor(
-            None,
-            handle_greeting,
-            user_message,
-            parts,
-            history_text,
-            state_notes
-        )
-    else:
-        response_text = await loop.run_in_executor(
-            None,
-            get_expert_response,
-            user_message,
-            parts,
-            history_text,
-            state_notes
-        )
+    response_text = await loop.run_in_executor(
+        None,
+        get_expert_response,
+        phone_number,
+        user_message,
+        parts,
+        history_text,
+        state_notes
+    )
 
     # Save the interaction to update history and patient state
     add_interaction(phone_number, user_message, response_text)
