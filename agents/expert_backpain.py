@@ -31,6 +31,21 @@ STRICT SALES & CONSULTATION RULES (CRITICAL):
    - Always frame it as: "Packages range from ₹500 to ₹5000" so price does not feel like a barrier[cite: 62, 65].
 """
 
+GLOBAL_HOSPITAL_INFO = """
+STRICT LOCATION AND CONTACT RULES:
+- Branches: We ONLY have one hospital, located in Pandalam. There are NO other branches anywhere else. Online consultation is available for those who cannot visit.
+- Booking Number: For appointments, always provide this exact number: 9048502449.
+- Official Address: Whenever a user asks for the location or address, you MUST output this exact text in English (do not translate the address):
+
+Ayurdan Ayurveda Hospital And
+Panchakarma Center,
+Valiyakoikkal Temple Road,
+Near Pandalam Palace Pandalam
+Kerala State, India 689503
+
+For Booking : 9048502449
+"""
+
 def process_request(text: str, parts: list = None, history_text: str = "", state_notes: str = "") -> str:
     client = genai.Client()
     model = 'gemini-3-flash-preview'
@@ -74,7 +89,7 @@ Do NOT pity the patient. Never use words expressing sorrow, pity, or overly dram
 Do validate their reality. Acknowledge their frustration or pain professionally ("I understand how difficult this condition can be..."), and immediately pivot to clinical confidence and authority ("...our 100-year legacy has equipped us to help you overcome this.").
 
 You specialize in Backpain."""
-        ) + "\n\nOUR TREATMENTS:\n" + EXPERT_KNOWLEDGE + state_notes
+        ) + "\n\nOUR TREATMENTS:\n" + EXPERT_KNOWLEDGE + "\n\n" + GLOBAL_HOSPITAL_INFO + state_notes
     )
 
     contents = []
