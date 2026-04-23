@@ -81,13 +81,13 @@ STRICTLY FORBIDDEN: Do not use or output 'Manglish' (Malayalam written in the En
     )
     return response.text.strip()
 
-def call_receptionist(text: str, parts: list, history_text: str) -> str:
+def call_receptionist(text: str, parts: list, history_text: str, state_notes: str) -> str:
     client = genai.Client()
     model = 'gemini-3-flash-preview'
 
     config = types.GenerateContentConfig(
         thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_level='MINIMAL'),
-        system_instruction=RECEPTIONIST_PROMPT
+        system_instruction=RECEPTIONIST_PROMPT + state_notes
     )
 
     contents = []
@@ -115,7 +115,31 @@ def dispatch_to_expert(expert_tag: str, text: str, parts: list, history_text: st
     expert_module = experts.get(expert_tag, expert_rejuvenation)
     return expert_module.process_request(text, parts, history_text, state_notes)
 
+
+def check_intent_reset(text: str) -> bool:
+    client = genai.Client()
+    model = 'gemini-3-flash-preview'
+
+    config = types.GenerateContentConfig(
+        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_level='MINIMAL'),
+        system_instruction=(
+            "You are an intent detection bot. The user is currently assigned to a specific medical department. "
+            "Analyze their latest message to see if they are EXPLICITLY asking to switch to a completely different department "
+            "(e.g., from Backpain to Hair Care, or from Psoriasis to appointments). "
+            "If they are asking to switch or start over with a new issue, output EXACTLY 'RESET'. "
+            "Otherwise, output 'CONTINUE'."
+        )
+    )
+
+    response = client.models.generate_content(
+        model=model,
+        contents=[f"User Input: {text}"],
+        config=config,
+    )
+    return "RESET" in response.text.strip().upper()
+
 def get_expert_response(phone_number: str, text: str, parts: list = None, history_text: str = "", state_notes: str = "") -> str:
+
     active_expert = get_active_expert(phone_number)
 
     if not history_text.strip():
@@ -123,11 +147,16 @@ def get_expert_response(phone_number: str, text: str, parts: list = None, histor
         return handle_greeting(text, parts, history_text)
 
     if active_expert:
-        # Bypass Receptionist
-        return dispatch_to_expert(active_expert, text, parts, history_text, state_notes)
+        # Intent Reset Mechanism
+        if check_intent_reset(text):
+            set_active_expert(phone_number, None)
+            active_expert = None
+        else:
+            # Bypass Receptionist
+            return dispatch_to_expert(active_expert, text, parts, history_text, state_notes)
 
     # No active expert, send to Receptionist
-    receptionist_reply = call_receptionist(text, parts, history_text)
+    receptionist_reply = call_receptionist(text, parts, history_text, state_notes)
 
     # Check for Routing Tag
     match = re.search(r'\[ROUTE:\s*(.*?)\]', receptionist_reply, re.IGNORECASE)

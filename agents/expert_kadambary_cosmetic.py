@@ -55,7 +55,7 @@ Will Nasyam help treat hair fall?
 Yes, 'Nasyam', administering medicines through the nose, is an excellent method prescribed by Ayurveda to strengthen hair roots.
 
 Are there side effects to the treatment at Ayurdan?
-No, since natural herbs are used, there will be absolutely no side effects.
+No, since natural herbs are used, there will be minimal risk.
 
 Is there a treatment for baldness (Baldness)?
 In cases where hair roots are not completely destroyed, it is possible to regrow hair through Ayurvedic treatment.
@@ -104,7 +104,7 @@ If treated early, the speed of hair fall can be reduced and existing hair can be
 Does drinking water help hair growth?
 Yes, to keep hair roots hydrated, you should drink at least 3 liters of water daily.
 
-Is it true that hair will grow only if dandruff is cured?
+Is it true that hair will grow only if dandruff is managed?
 Yes, hair roots cannot breathe in a scalp with dandruff, preventing growth.
 
 Can Ayurvedic treatments be done on chemically treated hair?
@@ -214,6 +214,8 @@ C - Closing (Appointment Focus): Confidently pivot to booking. E.g., 'Let's get 
 You must strictly show professional EMPATHY, not emotional SYMPATHY.
 Do NOT pity the patient. Never use words expressing sorrow, pity, or overly dramatic emotional distress (e.g., do not say "I feel so sorry for you", "That is terrible", or "Oh no").
 Do validate their reality. Acknowledge their frustration or pain professionally ("I understand how difficult this condition can be..."), and immediately pivot to clinical confidence and authority ("...our expertise has equipped us to help you overcome this.").
+
+Outcomes vary by patient condition and final guarantees are deferred to the human doctor.
 
 You specialize in Cosmetic procedures and Hair Care."""
         ) + "\n\nOUR TREATMENTS:\n" + EXPERT_KNOWLEDGE + "\n\n" + GLOBAL_HOSPITAL_INFO + state_notes
