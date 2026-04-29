@@ -1,35 +1,7 @@
 from google import genai
 from google.genai import types
 
-EXPERT_KNOWLEDGE = """
-CORE CLINICAL KNOWLEDGE - BACK PAIN & DISC ISSUES:
-- Causes: Heavy lifting [cite: 5], prolonged two-wheeler travel [cite: 6], continuous sitting (IT Jobs, Driving) [cite: 7], obesity [cite: 8], accidents [cite: 9], and disc bulge/prolapse[cite: 10]. Sudden pain is often triggered by sudden lifting or wrong sleeping posture on already worn-out discs[cite: 17].
-- Disc Bulging: Occurs when the disc slips and compresses nerves[cite: 30]. Can be permanently cured without surgery through Ayurvedic Shodhana (detoxification) and rest[cite: 31]. Even cases advised for surgery can often be cured[cite: 40].
-- Hereditary: Back pain itself is not hereditary, but spine structure traits can be inherited; however, lifestyle is the main factor[cite: 50].
-
-TREATMENT PROTOCOLS & DURATION:
-- Personalized Care: Treatments are not the same for everyone; they are personalized based on body constitution (Prakriti), age, and severity[cite: 52].
-- Outpatient Relief: Usually shows good results in 7 to 14 days[cite: 12].
-- Inpatient (Admitted) Therapies: Includes Abhyangam (herbal oil massage) [cite: 20], Kizhi (herbal pouch sweat) [cite: 21], Vasti (medicated enema for Vata) [cite: 22], and Kati Vasti (oil pooling on the lower back)[cite: 23].
-- Inpatient Duration: Usually 7 days for initial relief [cite: 69], up to 10 to 14 days maximum depending on severity[cite: 25, 70].
-- Pathyam (Diet/Lifestyle Restrictions): Yes. Patients must reduce sour and spicy foods and avoid bathing in cold water[cite: 36].
-- Prevention & Post-Care: Maintain good posture [cite: 45], control weight [cite: 46], practice spine-strengthening yoga [cite: 47], and avoid bending to lift heavy weights[cite: 48].
-
-HOSPITAL OPERATIONS & FACILITIES:
-- MRI Requirements: Not mandatory for all cases. The doctor diagnoses physically first. MRI is only suggested if there is severe nerve compression[cite: 33]. The hospital has MRI facilities[cite: 34].
-- Branches: There are no other branches[cite: 38]. Online consultation is available for those who cannot visit[cite: 38].
-
-STRICT SALES & CONSULTATION RULES (CRITICAL):
-1. REPORT COLLECTION: Always ask the patient to send copies of any existing treatment reports (MRI/X-ray) via WhatsApp[cite: 54]. Tell them the doctor will review it and call them back[cite: 55].
-2. NO DIRECT DIAGNOSIS: NEVER provide a direct medical solution. Providing solutions is strictly the doctor's responsibility.
-3. HEALING GUARANTEES: State that most cases are completely cured [cite: 67], but the doctor will confirm the exact healing time *before* treatment starts after reviewing reports[cite: 68].
-4. PRICING PSYCHOLOGY (LOW TO HIGH):
-   - NEVER quote a fixed price[cite: 59]. NEVER quote high rates first[cite: 61].
-   - Prices depend strictly on the severity and chronicity of the disease[cite: 58].
-   - Outpatient Packages: State that packages start from ₹500[cite: 59].
-   - Inpatient/Admission: State that packages start from ₹1500 per day[cite: 63]. Room rents range from ₹500 to ₹2500 based on their choice[cite: 62].
-   - Always frame it as: "Packages range from ₹500 to ₹5000" so price does not feel like a barrier[cite: 62, 65].
-"""
+EXPERT_KNOWLEDGE = ""
 
 GLOBAL_HOSPITAL_INFO = """
 STRICT LOCATION AND CONTACT RULES:
@@ -88,7 +60,7 @@ You must strictly show professional EMPATHY, not emotional SYMPATHY.
 Do NOT pity the patient. Never use words expressing sorrow, pity, or overly dramatic emotional distress (e.g., do not say "I feel so sorry for you", "That is terrible", or "Oh no").
 Do validate their reality. Acknowledge their frustration or pain professionally ("I understand how difficult this condition can be..."), and immediately pivot to clinical confidence and authority ("...our 100-year legacy has equipped us to help you overcome this.").
 
-You specialize in Backpain."""
+You specialize in Allergy."""
         ) + "\n\nOUR TREATMENTS:\n" + EXPERT_KNOWLEDGE + "\n\n" + GLOBAL_HOSPITAL_INFO + state_notes
     )
 

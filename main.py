@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request, BackgroundTasks
 import requests
 from google.genai import types
-from google.genai.errors import ClientError
 import os
 from dotenv import load_dotenv
 import asyncio
@@ -58,22 +57,15 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
     # Running the routing logic and gemini generation in a thread pool to avoid blocking the event loop
     loop = asyncio.get_event_loop()
 
-    try:
-        response_text = await loop.run_in_executor(
-            None,
-            get_expert_response,
-            phone_number,
-            user_message,
-            parts,
-            history_text,
-            state_notes
-        )
-    except ClientError as e:
-        if getattr(e, 'code', None) == 429:
-            background_tasks.add_task(send_zoko_message, phone_number, "ക്ഷമിക്കണം, സെർവർ നിലവിൽ തിരക്കിലാണ്. ദയവായി അല്പസമയത്തിനുശേഷം വീണ്ടും ശ്രമിക്കുക.")
-            return {"status": "quota_exceeded"}
-        else:
-            raise e
+    response_text = await loop.run_in_executor(
+        None,
+        get_expert_response,
+        phone_number,
+        user_message,
+        parts,
+        history_text,
+        state_notes
+    )
 
     # Save the interaction to update history and patient state
     add_interaction(phone_number, user_message, response_text)
