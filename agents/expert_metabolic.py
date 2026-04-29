@@ -2,55 +2,36 @@ from google import genai
 from google.genai import types
 
 EXPERT_KNOWLEDGE = """
-1) Allergy / Allergic Rhinitis Script
+6) Diabetes Script
 
-തുടർച്ചയായ തുമ്മൽ, മൂക്കൊലിപ്പ്, മൂക്ക് അടയുക, കണ്ണിൽ ചൊറിച്ചിൽ, ശ്വാസം എടുക്കാൻ ബുദ്ധിമുട്ട് എന്നിവ ഉണ്ടാകുന്നുണ്ടോ?
-ഇത് Allergic Rhinitis ന്റെ ലക്ഷണങ്ങളായിരിക്കാം.
+അധിക ദാഹം, ക്ഷീണം, frequent urination, ശരീരഭാരം മാറ്റം, energy കുറവ് എന്നിവ അനുഭവപ്പെടുന്നുണ്ടോ?
+ഇത് Diabetes നുമായി ബന്ധപ്പെട്ടിരിക്കാം.
 
-Ayurdan Ayurveda-യിൽ വിദഗ്ധരുടെ നിർദ്ദേശത്തോടെ നിങ്ങളുടെ ശരീരപ്രകൃതിയും അസ്വസ്ഥതയുടെ മൂലകാരണവും മനസിലാക്കി Ayurveda-based treatment plan ലഭിക്കും.
+Ayurdan site-ൽ diabetes treatment-ിൽ Panchakarma detox procedures, herbal medication, diet plan, foot care, yoga sessions, body constitution analysis എന്നിവ ഉൾപ്പെടുന്ന holistic approach പറഞ്ഞിട്ടുണ്ട്.
 
-✅ മൂലകാരണം മനസിലാക്കുന്ന സമീപനം
-✅ വ്യക്തിഗത ചികിത്സാ പദ്ധതി
-✅ ജീവിതശൈലി & ആഹാര നിർദ്ദേശങ്ങൾ
-✅ ദീർഘകാല ആശ്വാസത്തിന് Ayurveda പിന്തുണ
+✅ holistic diabetic care
+✅ diet & lifestyle management
+✅ yoga support
+✅ long-term discipline-based health approach
 
-അലർജി ലക്ഷണങ്ങളെ അവഗണിക്കരുത്.
-ഇപ്പോൾ തന്നെ consultation ബുക്ക് ചെയ്യൂ.
-
-📍 Ayurdan Ayurveda Hospital & Panchakarma Center, Pandalam
-📞 Booking: +91 95265 30400 | 90485 02449
-
-3) Asthma Script
-
-വീണ്ടും വീണ്ടും ശ്വാസംമുട്ടൽ, വീസിംഗ്, നെഞ്ച് മുറുക്കൽ, രാത്രിയിൽ ചുമ കൂടുക എന്നിവ ഉണ്ടാകുന്നുണ്ടോ?
-ഇത് Asthma ആയിരിക്കാം.
-
-Ayurdan Ayurveda-യിൽ ശ്വാസകോശാരോഗ്യത്തെ പിന്തുണക്കുന്ന സമഗ്രമായ Ayurveda-based care വഴി symptom management-ിനും overall wellness-ിനും സഹായകരമായ ചികിത്സാ സമീപനം ലഭിക്കും. Asthma speciality treatment site menu-ിൽ ഉൾപ്പെടുത്തിയിരിക്കുന്നു.
-
-✅ വ്യക്തിഗത ചികിത്സാ പദ്ധതി
-✅ ശ്വാസപ്രശ്നങ്ങൾക്ക് Ayurveda support
-✅ diet & lifestyle guidance
-✅ ദൈനംദിന ജീവിത നിലവാരം മെച്ചപ്പെടുത്താൻ ശ്രദ്ധ
-
-ശ്വാസം എളുപ്പമാക്കാനുള്ള ശരിയായ വഴിയിലേക്ക് ഇന്ന് തന്നെ കടക്കൂ.
+ഡയബറ്റിസ് നിയന്ത്രിക്കാൻ ശരിയായ മാർഗം ഇന്ന് തന്നെ ആരംഭിക്കൂ.
 
 📍 Ayurdan Ayurveda Hospital, Pandalam
 📞 +91 95265 30400 | 90485 02449
 
-14) Nasal Polyps Script
+7) Fatty Liver Script
 
-മൂക്ക് അടയുക, ശ്വാസം എടുക്കാൻ ബുദ്ധിമുട്ട്, smell കുറയുക, chronic sinus discomfort എന്നിവ ഉണ്ടാകുന്നുണ്ടോ?
-ഇത് Nasal Polyps ന്റെ ലക്ഷണങ്ങളായിരിക്കാം.
+ക്ഷീണം, ദഹനപ്രശ്നങ്ങൾ, വയറിൽ ഭാരമുള്ള തോന്നൽ, ഭക്ഷണത്തിൽ അസ്വസ്ഥത എന്നിവ ഉണ്ടോ?
+ഇത് Fatty Liver ന്റെ സൂചനയായിരിക്കാം.
 
-Ayurdan Ayurveda-യിൽ nasal / head-neck related conditions-ന് Ayurveda-based support ലഭിക്കുന്നു; Nasyam പോലുള്ള therapies site-ിൽ treatment menu-ൽ കാണുന്നു.
+Ayurdan Ayurveda-യിൽ fatty liver-നായി Ayurveda-based support, diet correction, lifestyle guidance എന്നിവയോടൊപ്പം holistic care ലഭിക്കും.
 
-✅ nasal blockage support
-✅ head & neck care
-✅ Ayurveda-based symptom management
-✅ consultation + guided treatment approach
+✅ കരൾ ആരോഗ്യത്തിന് Ayurveda support
+✅ ആഹാരക്രമ നിയന്ത്രണം
+✅ lifestyle correction
+✅ ശരീരത്തിന്റെ overall balance-ിന് സഹായകരമായ സമീപനം
 
-മൂക്കടപ്പ് വർഷങ്ങളോളം സഹിക്കേണ്ട കാര്യമില്ല.
-ഇപ്പോൾ തന്നെ ബന്ധപ്പെടൂ.
+Fatty liver പ്രശ്നം അവഗണിക്കാതെ ഇന്ന് തന്നെ check ചെയ്യൂ.
 
 📍 Pandalam
 📞 +91 95265 30400 | 90485 02449
@@ -113,7 +94,7 @@ You must strictly show professional EMPATHY, not emotional SYMPATHY.
 Do NOT pity the patient. Never use words expressing sorrow, pity, or overly dramatic emotional distress (e.g., do not say "I feel so sorry for you", "That is terrible", or "Oh no").
 Do validate their reality. Acknowledge their frustration or pain professionally ("I understand how difficult this condition can be..."), and immediately pivot to clinical confidence and authority ("...our 100-year legacy has equipped us to help you overcome this.").
 
-You specialize in Allergy."""
+You specialize in Metabolic & Lifestyle."""
         ) + "\n\nOUR TREATMENTS:\n" + EXPERT_KNOWLEDGE + "\n\n" + GLOBAL_HOSPITAL_INFO + state_notes
     )
 

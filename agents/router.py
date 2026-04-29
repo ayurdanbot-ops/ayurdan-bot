@@ -13,7 +13,10 @@ from agents import (
     expert_diabetes,
     expert_kadambary_cosmetic,
     expert_allergy,
-    expert_arthritis
+    expert_arthritis,
+    expert_metabolic,
+    expert_gynaecology,
+    expert_neurology
 )
 from memory_manager import get_active_expert, set_active_expert
 
@@ -53,6 +56,10 @@ STRICT RULES:
    - [ROUTE: ANORECTAL] (For piles, fistula, fissure, or painful bowel movements)
    - [ROUTE: ALLERGY] (For allergic reactions, sneezing, breathing issues)
    - [ROUTE: ARTHRITIS] (For joint pain, knee pain, arthritis)
+   - [ROUTE: METABOLIC] (For diabetes, fatty liver, metabolic issues)
+   - [ROUTE: GYNAECOLOGY] (For women's health, infertility, PCOD, irregular periods)
+   - [ROUTE: NEUROLOGY] (For migraine, paralysis, Parkinson's disease, neurological issues)
+   - [ROUTE: SPINE] (For back pain, disc bulge, spine, cervical spondylosis)
    - [ROUTE: GENERAL] (For anything else, appointments, or general wellness)
 '''
 
@@ -118,6 +125,10 @@ def dispatch_to_expert(expert_tag: str, text: str, parts: list, history_text: st
         "ANORECTAL": expert_anorectal,
         "ALLERGY": expert_allergy,
         "ARTHRITIS": expert_arthritis,
+        "METABOLIC": expert_metabolic,
+        "GYNAECOLOGY": expert_gynaecology,
+        "NEUROLOGY": expert_neurology,
+        "SPINE": expert_backpain,
         "GENERAL": expert_rejuvenation
     }
     expert_module = experts.get(expert_tag, expert_rejuvenation)
@@ -145,7 +156,7 @@ def get_expert_response(phone_number: str, text: str, parts: list = None, histor
         route_tag = match.group(1).upper()
 
         # Valid tags safety
-        if route_tag not in ["PSORIASIS", "HAIR", "BACKPAIN", "ANORECTAL", "ALLERGY", "ARTHRITIS", "GENERAL"]:
+        if route_tag not in ["PSORIASIS", "HAIR", "BACKPAIN", "ANORECTAL", "ALLERGY", "ARTHRITIS", "METABOLIC", "GYNAECOLOGY", "NEUROLOGY", "SPINE", "GENERAL"]:
             route_tag = "GENERAL"
 
         # Set Active Expert

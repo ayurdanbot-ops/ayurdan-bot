@@ -2,55 +2,54 @@ from google import genai
 from google.genai import types
 
 EXPERT_KNOWLEDGE = """
-1) Allergy / Allergic Rhinitis Script
+13) Migraine Script
 
-തുടർച്ചയായ തുമ്മൽ, മൂക്കൊലിപ്പ്, മൂക്ക് അടയുക, കണ്ണിൽ ചൊറിച്ചിൽ, ശ്വാസം എടുക്കാൻ ബുദ്ധിമുട്ട് എന്നിവ ഉണ്ടാകുന്നുണ്ടോ?
-ഇത് Allergic Rhinitis ന്റെ ലക്ഷണങ്ങളായിരിക്കാം.
+തലയുടെ ഒരുഭാഗത്ത് കഠിന വേദന, വെളിച്ചം സഹിക്കാനാകാതിരിക്കുക, ഛർദ്ദിഭാവം, recurring headache എന്നിവ ഉണ്ടോ?
+ഇത് Migraine ആയിരിക്കാം.
 
-Ayurdan Ayurveda-യിൽ വിദഗ്ധരുടെ നിർദ്ദേശത്തോടെ നിങ്ങളുടെ ശരീരപ്രകൃതിയും അസ്വസ്ഥതയുടെ മൂലകാരണവും മനസിലാക്കി Ayurveda-based treatment plan ലഭിക്കും.
+Ayurdan Ayurveda-യിൽ migraine-നായി Ayurveda-based speciality care ലഭിക്കും.
 
-✅ മൂലകാരണം മനസിലാക്കുന്ന സമീപനം
+✅ recurring headache support
+✅ stress & lifestyle guidance
+✅ body-mind balance-ന് Ayurveda care
 ✅ വ്യക്തിഗത ചികിത്സാ പദ്ധതി
-✅ ജീവിതശൈലി & ആഹാര നിർദ്ദേശങ്ങൾ
-✅ ദീർഘകാല ആശ്വാസത്തിന് Ayurveda പിന്തുണ
 
-അലർജി ലക്ഷണങ്ങളെ അവഗണിക്കരുത്.
-ഇപ്പോൾ തന്നെ consultation ബുക്ക് ചെയ്യൂ.
+വീണ്ടും വീണ്ടും വരുന്ന തലവേദനയെ സാധാരണമായി കാണരുത്.
+ഇന്ന് തന്നെ consultation എടുക്കൂ.
 
-📍 Ayurdan Ayurveda Hospital & Panchakarma Center, Pandalam
-📞 Booking: +91 95265 30400 | 90485 02449
-
-3) Asthma Script
-
-വീണ്ടും വീണ്ടും ശ്വാസംമുട്ടൽ, വീസിംഗ്, നെഞ്ച് മുറുക്കൽ, രാത്രിയിൽ ചുമ കൂടുക എന്നിവ ഉണ്ടാകുന്നുണ്ടോ?
-ഇത് Asthma ആയിരിക്കാം.
-
-Ayurdan Ayurveda-യിൽ ശ്വാസകോശാരോഗ്യത്തെ പിന്തുണക്കുന്ന സമഗ്രമായ Ayurveda-based care വഴി symptom management-ിനും overall wellness-ിനും സഹായകരമായ ചികിത്സാ സമീപനം ലഭിക്കും. Asthma speciality treatment site menu-ിൽ ഉൾപ്പെടുത്തിയിരിക്കുന്നു.
-
-✅ വ്യക്തിഗത ചികിത്സാ പദ്ധതി
-✅ ശ്വാസപ്രശ്നങ്ങൾക്ക് Ayurveda support
-✅ diet & lifestyle guidance
-✅ ദൈനംദിന ജീവിത നിലവാരം മെച്ചപ്പെടുത്താൻ ശ്രദ്ധ
-
-ശ്വാസം എളുപ്പമാക്കാനുള്ള ശരിയായ വഴിയിലേക്ക് ഇന്ന് തന്നെ കടക്കൂ.
-
-📍 Ayurdan Ayurveda Hospital, Pandalam
+📍 Pandalam
 📞 +91 95265 30400 | 90485 02449
 
-14) Nasal Polyps Script
+15) Paralysis Script
 
-മൂക്ക് അടയുക, ശ്വാസം എടുക്കാൻ ബുദ്ധിമുട്ട്, smell കുറയുക, chronic sinus discomfort എന്നിവ ഉണ്ടാകുന്നുണ്ടോ?
-ഇത് Nasal Polyps ന്റെ ലക്ഷണങ്ങളായിരിക്കാം.
+കൈകാലുകളുടെ ബലക്കുറവ്, movement കുറയുക, stroke-നു ശേഷമുള്ള ശരീരപ്രശ്നങ്ങൾ എന്നിവ ഉണ്ടോ?
+Ayurdan Ayurveda-യിൽ Paralysis-നായി Ayurveda-based support ലഭിക്കുന്നു. Site-ിൽ പിഴിച്ചിൽ, ശിരോധാര തുടങ്ങിയ neurological disorders-ക്ക് ഉപയോഗിക്കുന്ന therapies ഉണ്ട്.
 
-Ayurdan Ayurveda-യിൽ nasal / head-neck related conditions-ന് Ayurveda-based support ലഭിക്കുന്നു; Nasyam പോലുള്ള therapies site-ിൽ treatment menu-ൽ കാണുന്നു.
+✅ neurological care support
+✅ movement recovery-നെ സഹായിക്കുന്ന Ayurveda therapies
+✅ വ്യക്തിഗത rehabilitation-oriented plan
+✅ വിദഗ്ധരുടെ guidance
 
-✅ nasal blockage support
-✅ head & neck care
-✅ Ayurveda-based symptom management
-✅ consultation + guided treatment approach
+സമയത്ത് ആരംഭിക്കുന്ന care വളരെ പ്രധാനമാണ്.
+ഇപ്പോൾ തന്നെ consultation ബുക്ക് ചെയ്യൂ.
 
-മൂക്കടപ്പ് വർഷങ്ങളോളം സഹിക്കേണ്ട കാര്യമില്ല.
-ഇപ്പോൾ തന്നെ ബന്ധപ്പെടൂ.
+📍 Pandalam
+📞 +91 95265 30400 | 90485 02449
+
+16) Parkinson Disease Script
+
+കുലുക്കം, movement slowing, stiffness, balance പ്രശ്നങ്ങൾ എന്നിവ അനുഭവപ്പെടുന്നുണ്ടോ?
+ഇത് Parkinson disease നുമായി ബന്ധപ്പെട്ടിരിക്കാം.
+
+Ayurdan Ayurveda-യിൽ Parkinson disease speciality treatment website menu-ൽ ഉൾപ്പെടുത്തിയിരിക്കുന്നു.
+
+✅ neurological wellness support
+✅ Ayurveda-based supportive care
+✅ daily function മെച്ചപ്പെടുത്താൻ guidance
+✅ വ്യക്തിഗത treatment planning
+
+പ്രശ്നം തുടക്കത്തിൽ തന്നെ address ചെയ്യുന്നത് പ്രധാനമാണ്.
+ഇന്ന് തന്നെ consultation എടുക്കൂ.
 
 📍 Pandalam
 📞 +91 95265 30400 | 90485 02449
@@ -113,7 +112,7 @@ You must strictly show professional EMPATHY, not emotional SYMPATHY.
 Do NOT pity the patient. Never use words expressing sorrow, pity, or overly dramatic emotional distress (e.g., do not say "I feel so sorry for you", "That is terrible", or "Oh no").
 Do validate their reality. Acknowledge their frustration or pain professionally ("I understand how difficult this condition can be..."), and immediately pivot to clinical confidence and authority ("...our 100-year legacy has equipped us to help you overcome this.").
 
-You specialize in Allergy."""
+You specialize in Neurology."""
         ) + "\n\nOUR TREATMENTS:\n" + EXPERT_KNOWLEDGE + "\n\n" + GLOBAL_HOSPITAL_INFO + state_notes
     )
 
