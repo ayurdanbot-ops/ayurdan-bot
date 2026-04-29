@@ -29,6 +29,78 @@ STRICT SALES & CONSULTATION RULES (CRITICAL):
    - Outpatient Packages: State that packages start from ₹500[cite: 59].
    - Inpatient/Admission: State that packages start from ₹1500 per day[cite: 63]. Room rents range from ₹500 to ₹2500 based on their choice[cite: 62].
    - Always frame it as: "Packages range from ₹500 to ₹5000" so price does not feel like a barrier[cite: 62, 65].
+
+
+4) Back Pain Script
+
+പുറംവേദന, ഇരുന്നാലോ നിന്നാലോ വേദന കൂടുക, ജോലിക്കിടെ അസ്വസ്ഥത, stiffness എന്നിവ ഉണ്ടോ?
+ഇത് Back Pain ന്റെ ലക്ഷണങ്ങളായിരിക്കാം.
+
+Ayurdan site-ൽ back pain-ിനായി Ayurveda treatment holistic approach ആണെന്നും diet, lifestyle changes, herbal remedies എന്നിവ ഉൾപ്പെടുന്നതായി പറയുന്നു.
+
+✅ Back pain-ിന് Ayurveda support
+✅ lifestyle correction guidance
+✅ ഭക്ഷണക്രമ നിർദ്ദേശങ്ങൾ
+✅ daily activity-യിൽ സൗകര്യം നേടാൻ സഹായകരമായ treatment plan
+
+വേദനയെ പിന്നീട് നോക്കാം എന്ന് മാറ്റിവെക്കരുത്.
+ഇപ്പോൾ തന്നെ ബുക്ക് ചെയ്യൂ.
+
+📍 Pandalam
+📞 +91 95265 30400 | 90485 02449
+
+5) Cervical Spondylosis Script
+
+കഴുത്ത് വേദന, തലചുറ്റൽ, കൈകളിലേക്ക് numbness, shoulder tightness എന്നിവ ഉണ്ടാകുന്നുണ്ടോ?
+ഇത് Cervical Spondylosis ന്റെ ലക്ഷണങ്ങളായിരിക്കാം.
+
+Ayurdan Ayurveda-യിൽ neck-related pain & stiffness-നായി Ayurveda-based management ലഭിക്കും.
+
+✅ കഴുത്ത്-തോൾ ഭാഗത്തിലെ അസ്വസ്ഥതയ്ക്ക് care
+✅ ശരീരഘടന അനുസരിച്ചുള്ള treatment support
+✅ posture & lifestyle guidance
+✅ long-term support plan
+
+കഴുത്ത് വേദന ചെറുതായി കാണരുത്.
+ഇന്ന് തന്നെ consultation എടുക്കൂ.
+
+📍 Pandalam
+📞 +91 95265 30400 | 90485 02449
+
+12) Low Back Pain & Disk Problems Script
+
+താഴെപ്പുറ വേദന, കാലിലേക്ക് വേദന ഇറങ്ങുക, numbness, കൂടുതൽ സമയം ഇരിക്കുമ്പോൾ ബുദ്ധിമുട്ട് എന്നിവ ഉണ്ടാകുന്നുണ്ടോ?
+ഇത് Low Back Pain / Disk Problem ന്റെ ലക്ഷണങ്ങളായിരിക്കാം.
+
+Ayurdan site-ൽ low back pain & disk problems-നായി herbal medicines കൂടാതെ Kati vasti പോലുള്ള therapies ഉൾപ്പെടുന്ന treatment support പറഞ്ഞിട്ടുണ്ട്.
+
+✅ lower back pain support
+✅ disk-related discomfort management
+✅ Ayurveda therapies support
+✅ daily function മെച്ചപ്പെടുത്താൻ guidance
+
+വേദന നീണ്ടുപോകാൻ അനുവദിക്കരുത്.
+ഇപ്പോൾ തന്നെ consultation ബുക്ക് ചെയ്യൂ.
+
+📍 Pandalam
+📞 +91 95265 30400 | 90485 02449
+
+20) Spondylosis Script
+
+കഴുത്ത് / പിൻഭാഗം stiffness, pain, tingling, numbness, mobility കുറവ് എന്നിവ ഉണ്ടോ?
+ഇത് Spondylosis ന്റെ ലക്ഷണങ്ങളായിരിക്കാം.
+
+Ayurdan Ayurveda-യിൽ spondylosis speciality treatment website menu-ൽ ഉൾപ്പെടുത്തിയിരിക്കുന്നു. Nasyam head & neck conditions-ക്ക് ഉപയോഗിക്കുന്നതായി site-ിൽ പറയുന്നു.
+
+✅ pain & stiffness support
+✅ head-neck / spine wellness guidance
+✅ Ayurveda-based care
+✅ daily activity മെച്ചപ്പെടുത്താൻ treatment support
+
+വേദനയെ അവഗണിക്കാതെ ഇന്ന് തന്നെ consultation എടുക്കൂ.
+
+📍 Pandalam
+📞 +91 95265 30400 | 90485 02449
 """
 
 GLOBAL_HOSPITAL_INFO = """

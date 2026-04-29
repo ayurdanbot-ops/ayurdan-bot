@@ -1,7 +1,61 @@
 from google import genai
 from google.genai import types
 
-EXPERT_KNOWLEDGE = ""
+EXPERT_KNOWLEDGE = """
+2) Arthritis Script
+
+കൈകാലുകളിൽ വേദന, joint stiffness, വീക്കം, രാവിലെ എഴുന്നേൽക്കുമ്പോൾ മുറുക്കം എന്നിവ അനുഭവപ്പെടുന്നുണ്ടോ?
+ഇത് Arthritis ന്റെ ലക്ഷണങ്ങളായിരിക്കാം.
+
+Ayurdan Ayurveda-യിൽ arthritis-നായി Ayurveda, yoga, organic food ഉൾപ്പെടുത്തിയ treatment program ലഭ്യമാണെന്ന് site പറയുന്നു. Program സാധാരണയായി 14 മുതൽ 21 ദിവസം വരെ condition അനുസരിച്ച് മാറാം.
+
+✅ Joint pain management
+✅ Stiffness കുറയ്ക്കാൻ Ayurveda support
+✅ ശരീരത്തിന് യോജിച്ച treatment plan
+✅ ജീവിതശൈലി നിയന്ത്രണ നിർദ്ദേശങ്ങൾ
+
+ഇനി വേദന സഹിച്ച് നടക്കേണ്ട.
+ഇപ്പോൾ തന്നെ consultation ബുക്ക് ചെയ്യൂ.
+
+📍 Pandalam
+📞 +91 95265 30400 | 90485 02449
+
+8) Frozen Shoulder Script
+
+കൈ ഉയർത്താൻ ബുദ്ധിമുട്ട്, shoulder stiffness, വേദന കാരണം ഉറക്കം തകരുക എന്നിവ ഉണ്ടാകുന്നുണ്ടോ?
+ഇത് Frozen Shoulder ആയിരിക്കാം.
+
+Ayurdan Ayurveda-യിൽ shoulder mobility മെച്ചപ്പെടുത്താനും വേദനയും stiffness-ും നിയന്ത്രിക്കാനും സഹായകരമായ Ayurveda-based treatment support ലഭിക്കും.
+
+✅ shoulder pain management
+✅ stiffness കുറയ്ക്കാൻ support
+✅ movement മെച്ചപ്പെടുത്താൻ care
+✅ വ്യക്തിഗത ചികിത്സാ പദ്ധതി
+
+തോളിന്റെ സ്വാതന്ത്ര്യം തിരിച്ചുപിടിക്കാം.
+ഇപ്പോൾ തന്നെ consultation ബുക്ക് ചെയ്യൂ.
+
+📍 Pandalam
+📞 +91 95265 30400 | 90485 02449
+
+11) Knee Pain Script
+
+നടക്കുമ്പോൾ മുട്ടുവേദന, കയറിറങ്ങാൻ ബുദ്ധിമുട്ട്, stiffness, joint discomfort എന്നിവ ഉണ്ടോ?
+ഇത് Knee Pain ന്റെ ലക്ഷണങ്ങളായിരിക്കാം.
+
+Ayurdan Ayurveda-യിൽ knee-related pain-ന് Ayurveda-based support ലഭിക്കും.
+
+✅ pain management support
+✅ movement മെച്ചപ്പെടുത്താൻ care
+✅ lifestyle guidance
+✅ വ്യക്തിഗത treatment plan
+
+മുട്ടുവേദന കൊണ്ട് ദിവസേനയുടെ ജീവിതം തടസപ്പെടാതിരിക്കട്ടെ.
+ഇന്ന് തന്നെ ബന്ധപ്പെടൂ.
+
+📍 Pandalam
+📞 +91 95265 30400 | 90485 02449
+"""
 
 GLOBAL_HOSPITAL_INFO = """
 STRICT LOCATION AND CONTACT RULES:
