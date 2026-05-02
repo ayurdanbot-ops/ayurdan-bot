@@ -63,9 +63,9 @@ def add_interaction(phone_number: str, user_message: str, bot_response: str):
     if bot_response:
         history.append({"role": "model", "content": bot_response})
 
-    # Strictly limit to the last 8 messages (4 user, 4 bot) to cap memory
-    if len(history) > 8:
-        chat_history[hashed_id] = history[-8:]
+    # Strictly limit to the last 6 messages (3 user, 3 bot) to cap memory
+    if len(history) > 6:
+        chat_history[hashed_id] = history[-6:]
 
     update_patient_state(hashed_id, user_message, bot_response)
 
@@ -97,9 +97,9 @@ def get_context(phone_number: str):
     return history_text, state_notes
 
 async def clean_expired_sessions():
-    """Garbage collects sessions older than 2 hours to prevent OOM errors."""
+    """Garbage collects sessions older than 30 minutes to prevent OOM errors."""
     current_time = time.time()
-    expiry_limit = 7200 # 2 hours in seconds
+    expiry_limit = 1800 # 30 minutes in seconds
 
     # Need to convert keys to list to avoid runtime error during dict modification
     expired_keys = [
