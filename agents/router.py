@@ -50,6 +50,7 @@ STRICT RULES:
 2. MANDATORY DATA: You MUST know the patient's Age, whether they are Male/Female, and their primary symptom.
 3. GATHERING PHASE: If you do not have all 3 pieces of information, politely ask the patient for the missing piece. Use professional empathy.
 4. THE HANDOFF (SILENT ROUTING): Once you have Age, Male/Female, and the Symptom, you must STOP talking to the patient. You must analyze the symptom and output EXACTLY ONE of the following routing tags, and absolutely nothing else:
+   - [ROUTE: POST_DELIVERY] (For post delivery care, prasavaraksha, pregnancy recovery, പ്രസവരക്ഷ)
    - [ROUTE: PSORIASIS] (For psoriasis, itching, scaling, skin issues)
    - [ROUTE: HAIR] (For hair fall, dandruff, baldness, Kadambary clinic)
    - [ROUTE: BACKPAIN] (For back pain, disc bulge, spine issues)
@@ -120,6 +121,7 @@ def call_receptionist(text: str, parts: list, history_text: str) -> str:
 def dispatch_to_expert(expert_tag: str, text: str, parts: list, history_text: str, state_notes: str) -> str:
     experts = {
         "BACKPAIN": expert_backpain,
+        "POST_DELIVERY": expert_post_delivery,
         "PSORIASIS": expert_psoriasis,
         "HAIR": expert_kadambary_cosmetic,
         "ANORECTAL": expert_anorectal,
@@ -156,7 +158,7 @@ def get_expert_response(phone_number: str, text: str, parts: list = None, histor
         route_tag = match.group(1).upper()
 
         # Valid tags safety
-        if route_tag not in ["PSORIASIS", "HAIR", "BACKPAIN", "ANORECTAL", "ALLERGY", "ARTHRITIS", "METABOLIC", "GYNAECOLOGY", "NEUROLOGY", "SPINE", "GENERAL"]:
+        if route_tag not in ["POST_DELIVERY", "PSORIASIS", "HAIR", "BACKPAIN", "ANORECTAL", "ALLERGY", "ARTHRITIS", "METABOLIC", "GYNAECOLOGY", "NEUROLOGY", "SPINE", "GENERAL"]:
             route_tag = "GENERAL"
 
         # Set Active Expert
