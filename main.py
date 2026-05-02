@@ -4,6 +4,7 @@ from google.genai import types
 import os
 from dotenv import load_dotenv
 import asyncio
+import gc
 
 from agents.router import get_expert_response
 from zoko_client import send_zoko_message
@@ -74,4 +75,5 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
     background_tasks.add_task(send_zoko_message, phone_number, response_text)
     background_tasks.add_task(clean_expired_sessions)
 
+    gc.collect()
     return {"status": "success"}
