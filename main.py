@@ -25,8 +25,17 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
 
     phone_number = payload.get('platformSenderId')
     user_message = payload.get('text')
+    message_type = payload.get('type')
 
-    if not phone_number or not user_message:
+    if not phone_number:
+        return {"status": "ignored, missing phone number"}
+
+    if message_type and message_type != 'text':
+        fallback_msg = "ക്ഷമിക്കണം, നിലവിൽ എനിക്ക് വോയിസ് മെസ്സേജുകളോ ചിത്രങ്ങളോ (Photos/PDFs) സ്വീകരിക്കാൻ കഴിയില്ല. ദയവായി നിങ്ങളുടെ ബുദ്ധിമുട്ടുകൾ ടൈപ്പ് ചെയ്ത് അയക്കുക."
+        background_tasks.add_task(send_zoko_message, phone_number, fallback_msg)
+        return {"status": "success"}
+
+    if not user_message:
         return {"status": "ignored, missing data"}
 
     media_url = payload.get("media_url")
