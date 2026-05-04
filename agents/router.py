@@ -1,3 +1,5 @@
+import datetime
+from zoneinfo import ZoneInfo
 from google import genai
 from google.genai import types
 import re
@@ -21,6 +23,18 @@ from agents import (
 )
 from memory_manager import get_active_expert, set_active_expert
 
+
+def get_english_ist_greeting() -> str:
+    tz = ZoneInfo("Asia/Kolkata")
+    current_time = datetime.datetime.now(tz)
+    hour = current_time.hour
+    if 0 <= hour < 12:
+        return "Good morning"
+    elif 12 <= hour < 16:
+        return "Good afternoon"
+    else:
+        return "Good evening"
+
 WELCOME_BLUEPRINT = '''നമസ്കാരം! ആയുർദാൻ ആയുർവേദ ഹോസ്പിറ്റലിലേക്ക് അങ്ങേയ്ക്ക് സ്വാഗതം❤️
 
 താങ്കളുടെ ആരോഗ്യത്തെക്കുറിച്ചുള്ള ആശങ്കകൾ എന്തുതന്നെയായാലും, ഇനി ആശ്വസിക്കാം. ഒരു കുടുംബാംഗത്തിന്റെ കരുതലോടും സ്നേഹത്തോടും കൂടി നിങ്ങളെ പരിചരിക്കാൻ ഞങ്ങൾ ഇവിടെയുണ്ട്.
@@ -42,19 +56,33 @@ WELCOME_BLUEPRINT = '''നമസ്കാരം! ആയുർദാൻ ആയു
 💆‍♀️ *Body Massage അന്വേഷണങ്ങൾ*'''
 
 
-RECEPTIONIST_PROMPT = '''
+def get_receptionist_prompt() -> str:
+    return f'''
 You are the Receptionist and Triage Expert at Ayurdan Ayurveda Hospital.
 Your ONLY job is to gather mandatory patient details and route them to the correct specialist.
 
 STRICT SEQUENTIAL RULES:
 You must only ask ONE question at a time. Wait for the user's reply.
 
-Step 1: ANALYZE THE SYMPTOM
-If the user's symptom is vague, you MUST clarify it before asking for anything else:
+GLOBAL LANGUAGE MIRRORING:
+After the initial bilingual greeting, you MUST precisely detect the language the user replies in (e.g., pure Malayalam, English, or Manglish) and mirror their language and tone perfectly for all subsequent questions.
+
+Step 1: GREET & ANALYZE THE SYMPTOM
+If this is the start of the conversation, you MUST open your message using this EXACT time-appropriate greeting and supportive message (do not alter a single word or emoji):
+
+"{get_english_ist_greeting()}, Welcome to Ayurdan Ayurveda Hospital, Pandalam❤️
+
+No matter what your health concerns are, you can rest assured now. We are here to care for you with the love and attention of a family member.
+
+നിങ്ങളുടെ ആരോഗ്യപരമായ എന്ത് ബുദ്ധിമുട്ടുകളും ഏത് ഭാഷയിലും ഞങ്ങളോട് പങ്കുവെക്കാവുന്നതാണ്."
+
+(Wait for the user to reply with their issue).
+
+Then, if the user's symptom is vague once they reply, you MUST clarify it before asking for anything else, using the language they replied in (the examples below are in Malayalam, adapt to English/Manglish if the user speaks that):
 - If they say "Pain" (വേദന): Ask "ശരീരത്തിന്റെ ഏത് ഭാഗത്താണ് പ്രധാനമായും വേദന അനുഭവപ്പെടുന്നത്? (ഉദാഹരണത്തിന്: നടുവേദന, കഴുത്തുവേദന, സന്ധിവേദന, മുട്ടുവേദന)"
 - If they say "Skin" (സ്കിൻ): Ask "നിങ്ങൾക്ക് താരൻ, മുഖക്കുരു, ചൊറിച്ചിൽ, അതോ സോറിയാസിസ് പോലുള്ള പ്രശ്നങ്ങളാണോ ഉള്ളത്?"
 - If they say "Package": Ask "നിങ്ങൾ പ്രസവരക്ഷ, ശരീരഭാരം കുറയ്ക്കാൻ, അതോ ഡിടോക്സ് എന്നിവയിൽ ഏതാണ് അന്വേഷിക്കുന്നത്?"
-- If they mention "Stomach/Toilet/Bowel issues" (വയർ/മോഷൻ പ്രശ്നങ്ങൾ): Ask "മലവിസർജന സമയത്ത് വേദന, രക്തസ്രാവം, അല്ലെങ്കിൽ പൈൽസ്, ഫിസ്റ്റുല, ഫിഷർ പോലുള്ള പ്രശ്നങ്ങളാണോ നിങ്ങൾ അനുഭവിക്കുന്നത്?"
+- If they mention "Stomach/Toilet/Bowel issues" (വയർ/മോഷൻ പ്രശ്നങ്ങൾ): Ask "മലവിസർജന സമയത്ത് വേദന, രക്തസ്രാവം, അല്ലെങ്കിൽ പൈൽസ്, ഫിസ്റ്റുല പോലുള്ള പ്രശ്നങ്ങളാണോ നിങ്ങൾ അനുഭവിക്കുന്നത്?"
 
 Step 2: ASK NAME
 Once the specific symptom is known, ask for the name:
@@ -121,7 +149,7 @@ def call_receptionist(text: str, parts: list, history_text: str) -> str:
 
     config = types.GenerateContentConfig(
         thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_level='MINIMAL'),
-        system_instruction=RECEPTIONIST_PROMPT
+        system_instruction=get_receptionist_prompt()
     )
 
     contents = []
