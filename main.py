@@ -9,6 +9,7 @@ import gc
 from agents.router import get_expert_response
 from zoko_client import send_zoko_message
 from memory_manager import get_context, add_interaction, clean_expired_sessions
+from media_downloader import download_whatsapp_media
 
 load_dotenv()
 
@@ -30,16 +31,12 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
     if not phone_number:
         return {"status": "ignored, missing phone number"}
 
-    if message_type and message_type != 'text':
-        fallback_msg = "ക്ഷമിക്കണം, നിലവിൽ എനിക്ക് വോയിസ് മെസ്സേജുകളോ ചിത്രങ്ങളോ (Photos/PDFs) സ്വീകരിക്കാൻ കഴിയില്ല. ദയവായി നിങ്ങളുടെ ബുദ്ധിമുട്ടുകൾ ടൈപ്പ് ചെയ്ത് അയക്കുക."
-        background_tasks.add_task(send_zoko_message, phone_number, fallback_msg)
-        return {"status": "success"}
-
-    if not user_message:
-        return {"status": "ignored, missing data"}
-
+    media_id = payload.get("media_id")
     media_url = payload.get("media_url")
     media_mime_type = payload.get("media_mime_type")
+
+    if not user_message and not media_url and not media_id:
+        return {"status": "ignored, missing data"}
 
     parts = []
 
@@ -60,6 +57,19 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
             )
         except Exception as e:
             print(f"Failed to download media from {media_url}: {e}")
+    elif media_id:
+        try:
+            loop = asyncio.get_event_loop()
+            media_bytes = await loop.run_in_executor(None, download_whatsapp_media, media_id)
+            mime = media_mime_type or "application/octet-stream"
+            parts.append(
+                types.Part.from_bytes(
+                    data=media_bytes,
+                    mime_type=mime
+                )
+            )
+        except Exception as e:
+            print(f"Failed to download media via ID {media_id}: {e}")
 
     # Retrieve context
     history_text, state_notes = get_context(phone_number)
