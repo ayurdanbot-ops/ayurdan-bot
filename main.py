@@ -35,6 +35,13 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
     media_url = payload.get("media_url")
     media_mime_type = payload.get("media_mime_type")
 
+    if message_type == 'audio':
+        background_tasks.add_task(send_zoko_message, phone_number, "Listening... 🎧")
+    elif message_type == 'image':
+        background_tasks.add_task(send_zoko_message, phone_number, "Analyzing your image... 👁️")
+    elif message_type == 'document':
+        background_tasks.add_task(send_zoko_message, phone_number, "Reading your document... 📄")
+
     if not user_message and not media_url and not media_id:
         return {"status": "ignored, missing data"}
 
