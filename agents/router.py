@@ -109,6 +109,8 @@ def call_receptionist(text: str, parts: list, history_text: str) -> str:
         contents.append(f"Chat History:\n{history_text}")
     if text:
         contents.append(f"Current User Input: {text}")
+    elif parts:
+        contents.append("Current User Input: [Attached Media] Please analyze the attached media to determine the symptom.")
 
     response = client.models.generate_content(
         model=model,
