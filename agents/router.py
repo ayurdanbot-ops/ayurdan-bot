@@ -112,11 +112,18 @@ def call_receptionist(text: str, parts: list, history_text: str) -> str:
     elif parts:
         contents.append("Current User Input: [Attached Media] Please analyze the attached media to determine the symptom.")
 
-    response = client.models.generate_content(
-        model=model,
-        contents=contents,
-        config=config,
-    )
+    has_files = True if parts else False
+    if has_files:
+        response = client.models.generate_content(
+            model=model,
+            contents=contents,
+        )
+    else:
+        response = client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=config,
+        )
     return response.text.strip()
 
 def dispatch_to_expert(expert_tag: str, text: str, parts: list, history_text: str, state_notes: str) -> str:

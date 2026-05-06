@@ -78,9 +78,16 @@ You specialize in Rejuvenation."""
     if not contents:
         return "No content provided."
 
-    response = client.models.generate_content(
-        model=model,
-        contents=contents,
-        config=config,
-    )
+    has_files = True if parts else False
+    if has_files:
+        response = client.models.generate_content(
+            model=model,
+            contents=contents,
+        )
+    else:
+        response = client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=config,
+        )
     return response.text
