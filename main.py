@@ -94,6 +94,17 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
         background_tasks.add_task(send_zoko_message, phone_number, fallback_msg)
         return {"status": "success"}
 
+    # Generate history text for media
+    if not user_message and parts:
+        if message_type == 'audio':
+            user_message = "[Sent an audio message]"
+        elif message_type == 'image':
+            user_message = "[Sent an image]"
+        elif message_type == 'document':
+            user_message = "[Sent a PDF document]"
+        else:
+            user_message = "[Sent an attachment]"
+
     # Save the interaction to update history and patient state
     add_interaction(phone_number, user_message, response_text)
 
