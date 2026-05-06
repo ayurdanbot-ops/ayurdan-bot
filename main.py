@@ -1,7 +1,8 @@
 import logging
 import traceback
-logging.basicConfig(level=logging.INFO)
-from fastapi import FastAPI, Request, BackgroundTasks
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', force=True)
+logging.getLogger().setLevel(logging.INFO)
+from fastapi import FastAPI, Request
 import requests
 from google.genai import types
 import os
@@ -44,13 +45,14 @@ def process_audio(file_url, history_text, system_prompt):
     headers = {"apikey": zoko_api_key} if zoko_api_key else {}
 
     try:
-        response = requests.get(file_url, headers=headers)
-        logging.info(f"Audio Download HTTP Status: {response.status_code}")
-        response.raise_for_status()
-        logging.info("Checkpoint 2: Download successful (Audio)")
+        with requests.get(file_url, headers=headers, timeout=15, stream=True) as response:
+            logging.info(f"Audio Download HTTP Status: {response.status_code}")
+            response.raise_for_status()
+            logging.info("Checkpoint 2: Download successful (Audio)")
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".ogg") as temp_audio:
-            temp_audio.write(response.content)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".ogg") as temp_audio:
+                for chunk in response.iter_content(chunk_size=8192):
+                    temp_audio.write(chunk)
             temp_audio_path = temp_audio.name
 
         try:
@@ -92,13 +94,14 @@ def process_image(file_url, caption, history_text, system_prompt):
     elif ".webp" in file_url.lower(): ext = ".webp"
 
     try:
-        response = requests.get(file_url, headers=headers)
-        logging.info(f"Image Download HTTP Status: {response.status_code}")
-        response.raise_for_status()
-        logging.info("Checkpoint 2: Download successful (Image)")
+        with requests.get(file_url, headers=headers, timeout=15, stream=True) as response:
+            logging.info(f"Image Download HTTP Status: {response.status_code}")
+            response.raise_for_status()
+            logging.info("Checkpoint 2: Download successful (Image)")
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temp_img:
-            temp_img.write(response.content)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temp_img:
+                for chunk in response.iter_content(chunk_size=8192):
+                    temp_img.write(chunk)
             temp_img_path = temp_img.name
 
         try:
@@ -140,13 +143,14 @@ def process_pdf(file_url, history_text, system_prompt):
     headers = {"apikey": zoko_api_key} if zoko_api_key else {}
 
     try:
-        response = requests.get(file_url, headers=headers)
-        logging.info(f"PDF Download HTTP Status: {response.status_code}")
-        response.raise_for_status()
-        logging.info("Checkpoint 2: Download successful (PDF)")
+        with requests.get(file_url, headers=headers, timeout=15, stream=True) as response:
+            logging.info(f"PDF Download HTTP Status: {response.status_code}")
+            response.raise_for_status()
+            logging.info("Checkpoint 2: Download successful (PDF)")
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
-            temp_pdf.write(response.content)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
+                for chunk in response.iter_content(chunk_size=8192):
+                    temp_pdf.write(chunk)
             temp_pdf_path = temp_pdf.name
 
         try:
@@ -187,7 +191,7 @@ def root():
     return {"status": "Ayur Care Awake"}
 
 @app.post("/webhook")
-async def webhook(request: Request, background_tasks: BackgroundTasks):
+async def webhook(request: Request):
     payload = await request.json()
     logging.info(f'INCOMING ZOKO PAYLOAD: {payload}')
 
@@ -203,11 +207,11 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
     media_mime_type = payload.get("media_mime_type")
 
     if message_type == 'audio':
-        background_tasks.add_task(send_zoko_message, phone_number, "Listening... 🎧")
+        send_zoko_message(phone_number, "Listening to your message... 🎧")
     elif message_type == 'image':
-        background_tasks.add_task(send_zoko_message, phone_number, "Analyzing your image... 👁️")
+        send_zoko_message(phone_number, "Analyzing your image, please wait... 🔍")
     elif message_type == 'document':
-        background_tasks.add_task(send_zoko_message, phone_number, "Reading your document... 📄")
+        send_zoko_message(phone_number, "Reading your document, please wait... 📄")
 
     if not user_message and not media_url and not media_id:
         return {"status": "ignored, missing data"}
@@ -218,7 +222,6 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
         # Retrieve context
         history_text, state_notes = get_context(phone_number)
 
-        loop = asyncio.get_event_loop()
 
         from agents.router import get_receptionist_prompt
         from memory_manager import get_active_expert
@@ -241,27 +244,19 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
             system_prompt = get_receptionist_prompt()
 
         if message_type == "audio" and media_url:
-            response_text = await loop.run_in_executor(
-                None, process_audio, media_url, history_text, system_prompt
-            )
+            response_text = process_audio(media_url, history_text, system_prompt)
             user_message = "[Sent an audio message]"
         elif message_type == "image" and media_url:
-            response_text = await loop.run_in_executor(
-                None, process_image, media_url, user_message, history_text, system_prompt
-            )
+            response_text = process_image(media_url, user_message, history_text, system_prompt)
             user_message = "[Sent an image]"
-        elif message_type == "document" and media_url and media_url.endswith(".pdf"):
-            response_text = await loop.run_in_executor(
-                None, process_pdf, media_url, history_text, system_prompt
-            )
+        elif message_type == "document" and media_url and media_url.lower().endswith(".pdf"):
+            response_text = process_pdf(media_url, history_text, system_prompt)
             user_message = "[Sent a PDF document]"
         else:
-            response_text = await loop.run_in_executor(
-                None,
-                get_expert_response,
+            response_text = get_expert_response(
                 phone_number,
                 user_message,
-                [], # Empty parts since we handle files monolithically now
+                [],
                 history_text,
                 state_notes
             )
@@ -269,7 +264,7 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
     except Exception as e:
         logging.error("Pipeline Error", exc_info=True)
         fallback_msg = "ക്ഷമിക്കണം, സാങ്കേതിക തകരാർ കാരണം ഈ ഫയൽ പരിശോധിക്കാൻ കഴിഞ്ഞില്ല. ദയവായി നിങ്ങളുടെ ബുദ്ധിമുട്ടുകൾ ടൈപ്പ് ചെയ്ത് അയക്കാമോ?"
-        background_tasks.add_task(send_zoko_message, phone_number, fallback_msg)
+        send_zoko_message(phone_number, fallback_msg)
         return {"status": "success"}
 
 
@@ -278,8 +273,8 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
     add_interaction(phone_number, user_message, response_text)
 
     # Use background tasks to prevent waiting on outgoing I/O for webhook ack
-    background_tasks.add_task(send_zoko_message, phone_number, response_text)
-    background_tasks.add_task(clean_expired_sessions)
+    send_zoko_message(phone_number, response_text)
+    clean_expired_sessions()
 
     gc.collect()
     return {"status": "success"}
