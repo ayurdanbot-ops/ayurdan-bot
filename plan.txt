@@ -1,4 +1,0 @@
-1. No further code changes are needed because the current in-memory multimodal pipeline is already fully functional.
-2. Run `pytest` to ensure there are no regressions.
-3. Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.
-4. Submit the task since no further commits are needed.
