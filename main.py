@@ -25,6 +25,58 @@ load_dotenv()
 
 client = genai.Client()
 
+
+# Gemini 3 Flash Primary Config
+flash_config = types.GenerateContentConfig(
+    thinking_config=types.ThinkingConfig(
+        thinking_level="minimal",
+        include_thoughts=False
+    )
+)
+
+# Gemini 2.5 Pro Fallback Config
+pro_config = types.GenerateContentConfig(
+    thinking_config=types.ThinkingConfig(
+        include_thoughts=False,
+        thinking_budget=1024
+    )
+)
+
+def call_gemini_with_retry(contents, client):
+    raw_text = ""
+    try:
+        # 1. Attempt with Primary Model (Stable Flash)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=contents,
+            config=flash_config
+        )
+        raw_text = response.text
+    except Exception as e:
+        err_str = str(e).lower()
+        # 2. Handle Quota (429) OR Server Overload (503) via Fallback to Pro
+        if "429" in err_str or "quota" in err_str or "503" in err_str or "unavailable" in err_str:
+            print("FLASH OVERLOAD/QUOTA EXCEEDED (429/503). Falling back to Pro...")
+            try:
+                # Nested fallback to Pro
+                response = client.models.generate_content(
+                    model="gemini-2.5-pro",
+                    contents=contents,
+                    config=pro_config
+                )
+                raw_text = response.text
+            except Exception as pro_e:
+                print(f"CRITICAL SDK ERROR (Pro Fallback Failed): {str(pro_e)}")
+                return "I am just double-checking your details with our senior experts. Give me just a moment, and I will get right back to you!"
+        else:
+            # 3. Handle Other Errors immediately
+            print(f"CRITICAL SDK ERROR: {str(e)}")
+            logging.error(f"Gemini Error: {e}")
+            return "I am just double-checking your details with our senior experts. Give me just a moment, and I will get right back to you!"
+
+    return raw_text.strip()
+
+
 def wait_for_file_processing(file_obj, timeout=60):
     start_time = time.time()
     while file_obj.state == "PROCESSING":
@@ -68,11 +120,7 @@ def process_audio(file_url, history_text, system_prompt):
             contents.append("Please analyze this audio message and respond.")
             contents.append(uploaded_file)
 
-            response = client.models.generate_content(
-                model='gemini-3-flash-preview',
-                contents=contents
-            )
-            return response.text.strip()
+            return call_gemini_with_retry(contents, client)
 
         finally:
             if os.path.exists(temp_audio_path):
@@ -122,11 +170,7 @@ def process_image(file_url, caption, history_text, system_prompt):
             contents.append(instruction)
             contents.append(uploaded_file)
 
-            response = client.models.generate_content(
-                model='gemini-3-flash-preview',
-                contents=contents
-            )
-            return response.text.strip()
+            return call_gemini_with_retry(contents, client)
 
         finally:
             if os.path.exists(temp_img_path):
@@ -167,11 +211,7 @@ def process_pdf(file_url, history_text, system_prompt):
             contents.append("The user uploaded a medical document. Please analyze the findings and respond as an expert.")
             contents.append(uploaded_file)
 
-            response = client.models.generate_content(
-                model='gemini-3-flash-preview',
-                contents=contents
-            )
-            return response.text.strip()
+            return call_gemini_with_retry(contents, client)
 
         finally:
             if os.path.exists(temp_pdf_path):
