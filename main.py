@@ -1,3 +1,6 @@
+import logging
+import traceback
+logging.basicConfig(level=logging.INFO)
 from fastapi import FastAPI, Request, BackgroundTasks
 import requests
 from google.genai import types
@@ -36,19 +39,22 @@ def wait_for_file_processing(file_obj, timeout=60):
 
 
 def process_audio(file_url, history_text, system_prompt):
-
+    logging.info("Checkpoint 1: Media detected in webhook (Audio)")
     zoko_api_key = os.environ.get("ZOKO_API_KEY")
     headers = {"apikey": zoko_api_key} if zoko_api_key else {}
 
     try:
         response = requests.get(file_url, headers=headers)
+        logging.info(f"Audio Download HTTP Status: {response.status_code}")
         response.raise_for_status()
+        logging.info("Checkpoint 2: Download successful (Audio)")
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".ogg") as temp_audio:
             temp_audio.write(response.content)
             temp_audio_path = temp_audio.name
 
         try:
+            logging.info("Checkpoint 3: Gemini File API upload started (Audio)")
             uploaded_file = client.files.upload(file=temp_audio_path, mime_type='audio/ogg')
             uploaded_file = wait_for_file_processing(uploaded_file)
 
@@ -76,7 +82,7 @@ def process_audio(file_url, history_text, system_prompt):
 
 
 def process_image(file_url, caption, history_text, system_prompt):
-
+    logging.info("Checkpoint 1: Media detected in webhook (Image)")
     zoko_api_key = os.environ.get("ZOKO_API_KEY")
     headers = {"apikey": zoko_api_key} if zoko_api_key else {}
 
@@ -87,13 +93,16 @@ def process_image(file_url, caption, history_text, system_prompt):
 
     try:
         response = requests.get(file_url, headers=headers)
+        logging.info(f"Image Download HTTP Status: {response.status_code}")
         response.raise_for_status()
+        logging.info("Checkpoint 2: Download successful (Image)")
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temp_img:
             temp_img.write(response.content)
             temp_img_path = temp_img.name
 
         try:
+            logging.info("Checkpoint 3: Gemini File API upload started (Image)")
             uploaded_file = client.files.upload(file=temp_img_path)
             uploaded_file = wait_for_file_processing(uploaded_file)
 
@@ -126,19 +135,22 @@ def process_image(file_url, caption, history_text, system_prompt):
 
 
 def process_pdf(file_url, history_text, system_prompt):
-
+    logging.info("Checkpoint 1: Media detected in webhook (PDF)")
     zoko_api_key = os.environ.get("ZOKO_API_KEY")
     headers = {"apikey": zoko_api_key} if zoko_api_key else {}
 
     try:
         response = requests.get(file_url, headers=headers)
+        logging.info(f"PDF Download HTTP Status: {response.status_code}")
         response.raise_for_status()
+        logging.info("Checkpoint 2: Download successful (PDF)")
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
             temp_pdf.write(response.content)
             temp_pdf_path = temp_pdf.name
 
         try:
+            logging.info("Checkpoint 3: Gemini File API upload started (PDF)")
             uploaded_file = client.files.upload(file=temp_pdf_path, mime_type='application/pdf')
             uploaded_file = wait_for_file_processing(uploaded_file)
 
@@ -177,7 +189,7 @@ def root():
 @app.post("/webhook")
 async def webhook(request: Request, background_tasks: BackgroundTasks):
     payload = await request.json()
-    print(f'INCOMING ZOKO PAYLOAD: {payload}')
+    logging.info(f'INCOMING ZOKO PAYLOAD: {payload}')
 
     phone_number = payload.get('platformSenderId')
     user_message = payload.get('text')
@@ -268,8 +280,8 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
             )
 
     except Exception as e:
-        print(f"Pipeline Error: {e}")
-        fallback_msg = "ക്ഷമിക്കണം, എനിക്ക് ഈ ഫയൽ/മെസ്സേജ് പ്രോസസ്സ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ദയവായി നിങ്ങളുടെ ബുദ്ധിമുട്ടുകൾ ടൈപ്പ് ചെയ്ത് അയക്കാമോ?"
+        logging.error("Pipeline Error", exc_info=True)
+        fallback_msg = "ക്ഷമിക്കണം, സാങ്കേതിക തകരാർ കാരണം ഈ ഫയൽ പരിശോധിക്കാൻ കഴിഞ്ഞില്ല. ദയവായി നിങ്ങളുടെ ബുദ്ധിമുട്ടുകൾ ടൈപ്പ് ചെയ്ത് അയക്കാമോ?"
         background_tasks.add_task(send_zoko_message, phone_number, fallback_msg)
         return {"status": "success"}
 
