@@ -47,8 +47,8 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
 
     parts = []
 
-    if media_url:
-        try:
+    try:
+        if media_url:
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(None, requests.get, media_url)
             response.raise_for_status()
@@ -62,10 +62,7 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
                     mime_type=mime
                 )
             )
-        except Exception as e:
-            print(f"Failed to download media from {media_url}: {e}")
-    elif media_id:
-        try:
+        elif media_id:
             loop = asyncio.get_event_loop()
             media_bytes = await loop.run_in_executor(None, download_whatsapp_media, media_id)
             mime = media_mime_type or "application/octet-stream"
@@ -75,24 +72,27 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
                     mime_type=mime
                 )
             )
-        except Exception as e:
-            print(f"Failed to download media via ID {media_id}: {e}")
 
-    # Retrieve context
-    history_text, state_notes = get_context(phone_number)
+        # Retrieve context
+        history_text, state_notes = get_context(phone_number)
 
-    # Running the routing logic and gemini generation in a thread pool to avoid blocking the event loop
-    loop = asyncio.get_event_loop()
+        # Running the routing logic and gemini generation in a thread pool to avoid blocking the event loop
+        loop = asyncio.get_event_loop()
 
-    response_text = await loop.run_in_executor(
-        None,
-        get_expert_response,
-        phone_number,
-        user_message,
-        parts,
-        history_text,
-        state_notes
-    )
+        response_text = await loop.run_in_executor(
+            None,
+            get_expert_response,
+            phone_number,
+            user_message,
+            parts,
+            history_text,
+            state_notes
+        )
+    except Exception as e:
+        print(f"Pipeline Error: {e}")
+        fallback_msg = "ക്ഷമിക്കണം, എനിക്ക് ഈ ഫയൽ/മെസ്സേജ് പ്രോസസ്സ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ദയവായി നിങ്ങളുടെ ബുദ്ധിമുട്ടുകൾ ടൈപ്പ് ചെയ്ത് അയക്കാമോ?"
+        background_tasks.add_task(send_zoko_message, phone_number, fallback_msg)
+        return {"status": "success"}
 
     # Save the interaction to update history and patient state
     add_interaction(phone_number, user_message, response_text)
