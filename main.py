@@ -96,14 +96,13 @@ def process_audio(file_url, history_text, system_prompt):
     zoko_api_key = os.environ.get("ZOKO_API_KEY")
     headers = {"apikey": zoko_api_key} if zoko_api_key else {}
 
-    temp_audio_path = None
     try:
         with requests.get(file_url, headers=headers, timeout=15, stream=True) as response:
             logging.info(f"Audio Download HTTP Status: {response.status_code}")
             response.raise_for_status()
             logging.info("Checkpoint 2: Download successful (Audio)")
 
-            with tempfile.NamedTemporaryFile(dir=SECURE_CACHE_DIR, delete=False, suffix=".ogg") as temp_audio:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".ogg") as temp_audio:
                 for chunk in response.iter_content(chunk_size=8192):
                     temp_audio.write(chunk)
             temp_audio_path = temp_audio.name
@@ -123,19 +122,13 @@ def process_audio(file_url, history_text, system_prompt):
 
             return call_gemini_with_retry(contents, client)
 
-        response = client.models.generate_content(
-            model='gemini-3-flash-preview',
-            contents=contents
-        )
-        return response.text.strip()
+        finally:
+            if os.path.exists(temp_audio_path):
+                os.remove(temp_audio_path)
 
     except Exception as e:
         print(f"Audio processing error: {e}")
         return "I'm sorry, I couldn't hear that clearly. Could you please type your message?"
-    finally:
-        if temp_audio_path and os.path.exists(temp_audio_path):
-            os.remove(temp_audio_path)
-            logging.info(f"Deleted cached audio file: {temp_audio_path}")
 
 
 def process_image(file_url, caption, history_text, system_prompt):
@@ -148,34 +141,34 @@ def process_image(file_url, caption, history_text, system_prompt):
     if ".png" in file_url.lower(): ext = ".png"
     elif ".webp" in file_url.lower(): ext = ".webp"
 
-    temp_img_path = None
     try:
         with requests.get(file_url, headers=headers, timeout=15, stream=True) as response:
             logging.info(f"Image Download HTTP Status: {response.status_code}")
             response.raise_for_status()
             logging.info("Checkpoint 2: Download successful (Image)")
 
-            with tempfile.NamedTemporaryFile(dir=SECURE_CACHE_DIR, delete=False, suffix=ext) as temp_img:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temp_img:
                 for chunk in response.iter_content(chunk_size=8192):
                     temp_img.write(chunk)
             temp_img_path = temp_img.name
 
-        logging.info("Checkpoint 3: Gemini File API upload started (Image)")
-        uploaded_file = client.files.upload(file=temp_img_path)
-        uploaded_file = wait_for_file_processing(uploaded_file)
+        try:
+            logging.info("Checkpoint 3: Gemini File API upload started (Image)")
+            uploaded_file = client.files.upload(file=temp_img_path)
+            uploaded_file = wait_for_file_processing(uploaded_file)
 
-        contents = []
-        if system_prompt:
-            contents.append(system_prompt)
-        if history_text:
-            contents.append(f"Chat History:\n{history_text}")
+            contents = []
+            if system_prompt:
+                contents.append(system_prompt)
+            if history_text:
+                contents.append(f"Chat History:\n{history_text}")
 
-        instruction = "Look at this image and analyze it regarding the user's health query"
-        if caption:
-            instruction += f"\nUser Caption: {caption}"
+            instruction = "Look at this image and analyze it regarding the user's health query"
+            if caption:
+                instruction += f"\nUser Caption: {caption}"
 
-        contents.append(instruction)
-        contents.append(uploaded_file)
+            contents.append(instruction)
+            contents.append(uploaded_file)
 
             return call_gemini_with_retry(contents, client)
 
@@ -186,10 +179,6 @@ def process_image(file_url, caption, history_text, system_prompt):
     except Exception as e:
         print(f"Image processing error: {e}")
         return "I'm sorry, I couldn't analyze the image properly. Could you please describe it?"
-    finally:
-        if temp_img_path and os.path.exists(temp_img_path):
-            os.remove(temp_img_path)
-            logging.info(f"Deleted cached image file: {temp_img_path}")
 
 
 def process_pdf(file_url, history_text, system_prompt):
@@ -197,46 +186,40 @@ def process_pdf(file_url, history_text, system_prompt):
     zoko_api_key = os.environ.get("ZOKO_API_KEY")
     headers = {"apikey": zoko_api_key} if zoko_api_key else {}
 
-    temp_pdf_path = None
     try:
         with requests.get(file_url, headers=headers, timeout=15, stream=True) as response:
             logging.info(f"PDF Download HTTP Status: {response.status_code}")
             response.raise_for_status()
             logging.info("Checkpoint 2: Download successful (PDF)")
 
-            with tempfile.NamedTemporaryFile(dir=SECURE_CACHE_DIR, delete=False, suffix=".pdf") as temp_pdf:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
                 for chunk in response.iter_content(chunk_size=8192):
                     temp_pdf.write(chunk)
             temp_pdf_path = temp_pdf.name
 
-        logging.info("Checkpoint 3: Gemini File API upload started (PDF)")
-        uploaded_file = client.files.upload(file=temp_pdf_path, config={'mime_type': 'application/pdf'})
-        uploaded_file = wait_for_file_processing(uploaded_file)
+        try:
+            logging.info("Checkpoint 3: Gemini File API upload started (PDF)")
+            uploaded_file = client.files.upload(file=temp_pdf_path, config={'mime_type': 'application/pdf'})
+            uploaded_file = wait_for_file_processing(uploaded_file)
 
-        contents = []
-        if system_prompt:
-            contents.append(system_prompt)
-        if history_text:
-            contents.append(f"Chat History:\n{history_text}")
+            contents = []
+            if system_prompt:
+                contents.append(system_prompt)
+            if history_text:
+                contents.append(f"Chat History:\n{history_text}")
 
             contents.append("The user uploaded a medical document. Please analyze the findings and respond as an expert.")
             contents.append(uploaded_file)
 
             return call_gemini_with_retry(contents, client)
 
-        response = client.models.generate_content(
-            model='gemini-3-flash-preview',
-            contents=contents
-        )
-        return response.text.strip()
+        finally:
+            if os.path.exists(temp_pdf_path):
+                os.remove(temp_pdf_path)
 
     except Exception as e:
         print(f"PDF processing error: {e}")
         return "I received your document, but I am unable to read its contents. Could you please send it as a clear image or type out the details?"
-    finally:
-        if temp_pdf_path and os.path.exists(temp_pdf_path):
-            os.remove(temp_pdf_path)
-            logging.info(f"Deleted cached PDF file: {temp_pdf_path}")
 
 app = FastAPI()
 
