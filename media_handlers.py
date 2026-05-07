@@ -146,7 +146,8 @@ def process_image(file_url, sender_phone, prompt_text, history):
                 contents.append(types.Content(role=role, parts=[types.Part.from_text(text=h["parts"][0])]))
 
             user_prompt = prompt_text if prompt_text else "Please analyze this image regarding my health."
-            image_part = types.Part.from_uri(file_uri=myfile.uri, mime_type='image/jpeg')
+            mime = 'image/png' if ext == '.png' else 'image/webp' if ext == '.webp' else 'image/jpeg'
+            image_part = types.Part.from_uri(file_uri=myfile.uri, mime_type=mime)
             text_part = types.Part.from_text(text=f"Look at this image. Current time in Kerala is {current_time_str}. User says: {user_prompt}. Apply the Universal Language Protocol and answer as an expert.")
             contents.append(types.Content(role="user", parts=[image_part, text_part]))
 
