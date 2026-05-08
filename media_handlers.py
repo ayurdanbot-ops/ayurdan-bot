@@ -110,10 +110,9 @@ def process_image(file_url, sender_phone, prompt_text, history):
                     tmp.write(chunk)
                 local_filename = tmp.name
 
-        mime = 'image/png' if ext == '.png' else 'image/webp' if ext == '.webp' else 'image/jpeg'
         logging.info("Uploading Image to Gemini...")
         try:
-            myfile = client.files.upload(file=local_filename, config={'mime_type': mime})
+            myfile = client.files.upload(file=local_filename)
             start_time = time.time()
             while myfile.state == "PROCESSING":
                 if time.time() - start_time > GEMINI_PROCESSING_TIMEOUT:
@@ -147,6 +146,7 @@ def process_image(file_url, sender_phone, prompt_text, history):
                 contents.append(types.Content(role=role, parts=[types.Part.from_text(text=h["parts"][0])]))
 
             user_prompt = prompt_text if prompt_text else "Please analyze this image regarding my health."
+            mime = 'image/png' if ext == '.png' else 'image/webp' if ext == '.webp' else 'image/jpeg'
             image_part = types.Part.from_uri(file_uri=myfile.uri, mime_type=mime)
             text_part = types.Part.from_text(text=f"Look at this image. Current time in Kerala is {current_time_str}. User says: {user_prompt}. Apply the Universal Language Protocol and answer as an expert.")
             contents.append(types.Content(role="user", parts=[image_part, text_part]))
@@ -181,7 +181,7 @@ def process_pdf(file_url, sender_phone, history):
 
         logging.info("Uploading PDF to Gemini...")
         try:
-            myfile = client.files.upload(file=local_filename, config={'mime_type': 'application/pdf'})
+            myfile = client.files.upload(file=local_filename)
             start_time = time.time()
             while myfile.state == "PROCESSING":
                 if time.time() - start_time > GEMINI_PROCESSING_TIMEOUT:

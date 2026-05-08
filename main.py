@@ -23,7 +23,7 @@ from media_downloader import download_whatsapp_media
 load_dotenv()
 
 
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+client = genai.Client()
 
 
 # Gemini 3 Flash Primary Config
