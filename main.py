@@ -183,6 +183,7 @@ async def webhook(request: Request):
         # Image, Audio, PDF vs Text Logic
         if msg_type in ["audio", "image", "document"] and file_url:
             response_text = await handle_media_async(file_url, sender_phone, text_body, history, msg_type)
+            logging.info("DEBUG: Router successfully awaited media handler.")
             if msg_type == "document" and not user_input_for_history: user_input_for_history = "[Sent a PDF document]"
             elif msg_type == "image" and not user_input_for_history: user_input_for_history = "[Sent an image]"
             elif msg_type == "audio" and not user_input_for_history: user_input_for_history = "[Sent an audio message]"
