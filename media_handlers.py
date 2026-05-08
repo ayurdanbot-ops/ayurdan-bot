@@ -1,8 +1,6 @@
 import os
 import tempfile
-import aiohttp
-import aiofiles
-import aiofiles.tempfile
+import requests
 from google.genai import types
 import time
 import logging
@@ -29,50 +27,48 @@ def _check_reload_prompt():
 
 import asyncio
 
-
-async def process_media_async_core(file_url, sender_phone, prompt_text, history, msg_type):
-    logging.info(f"DEBUG: Entered process_media_async_core function for {msg_type}")
+def process_media_sync_core(file_url, sender_phone, prompt_text, history, msg_type):
+    logging.info(f"DEBUG: Entered process_media_sync_core function for {msg_type}")
     local_filename = None
     headers = {'apikey': ZOKO_API_KEY}
-    from main import call_gemini_with_retry_async, client
+    from main import call_gemini_with_retry, client
     try:
         logging.info(f"Downloading {msg_type}: {file_url}")
-        async with aiohttp.ClientSession() as session:
-            async with session.get(file_url, headers=headers) as r:
-                r.raise_for_status()
+        with requests.get(file_url, stream=True, headers=headers) as r:
+            r.raise_for_status()
 
-                ext = ".tmp"
-                mime = "application/octet-stream"
-                if msg_type == "audio":
-                    ext = ".ogg"
-                    mime = "audio/ogg"
-                elif msg_type == "image":
-                    ext = ".jpg"
-                    mime = "image/jpeg"
-                    if "png" in file_url.lower():
-                        ext = ".png"
-                        mime = "image/png"
-                    elif "webp" in file_url.lower():
-                        ext = ".webp"
-                        mime = "image/webp"
-                elif msg_type == "document":
-                    ext = ".pdf"
-                    mime = "application/pdf"
+            ext = ".tmp"
+            mime = "application/octet-stream"
+            if msg_type == "audio":
+                ext = ".ogg"
+                mime = "audio/ogg"
+            elif msg_type == "image":
+                ext = ".jpg"
+                mime = "image/jpeg"
+                if "png" in file_url.lower():
+                    ext = ".png"
+                    mime = "image/png"
+                elif "webp" in file_url.lower():
+                    ext = ".webp"
+                    mime = "image/webp"
+            elif msg_type == "document":
+                ext = ".pdf"
+                mime = "application/pdf"
 
-                async with aiofiles.tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
-                    async for chunk in r.content.iter_chunked(8192):
-                        await tmp.write(chunk)
-                    local_filename = tmp.name
+            with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+                for chunk in r.iter_content(chunk_size=8192):
+                    tmp.write(chunk)
+                local_filename = tmp.name
 
         logging.info(f"Uploading {msg_type} to Gemini...")
         try:
-            myfile = await client.aio.files.upload(file=local_filename, config={'mime_type': mime})
+            myfile = client.files.upload(file=local_filename, config={'mime_type': mime})
             start_time = time.time()
             while myfile.state == "PROCESSING":
                 if time.time() - start_time > GEMINI_PROCESSING_TIMEOUT:
                      raise TimeoutError("Gemini file processing timed out.")
-                await asyncio.sleep(2)
-                myfile = await client.aio.files.get(name=myfile.name)
+                time.sleep(2)
+                myfile = client.files.get(name=myfile.name)
 
             if myfile.state != "ACTIVE":
                 raise ValueError(f"Media processing failed or incomplete. State: {myfile.state}")
@@ -111,7 +107,7 @@ async def process_media_async_core(file_url, sender_phone, prompt_text, history,
 
             contents.append(types.Content(role="user", parts=[media_part, text_part]))
 
-            return await call_gemini_with_retry_async(contents, client)
+            return call_gemini_with_retry(contents, client)
 
         except Exception as e:
             logging.error(f"Gemini {msg_type} API Error: {e}")
@@ -127,10 +123,10 @@ async def process_media_async_core(file_url, sender_phone, prompt_text, history,
     finally:
         if local_filename and os.path.exists(local_filename):
             try:
-                await asyncio.to_thread(os.remove, local_filename)
+                os.remove(local_filename)
                 logging.info(f"Cleaned up temp file: {local_filename}")
             except Exception as e:
                 logging.error(f"Failed to cleanup temp file: {e}")
 
 async def handle_media_async(file_url, sender_phone, prompt_text, history, msg_type):
-    return await process_media_async_core(file_url, sender_phone, prompt_text, history, msg_type)
+    return await asyncio.to_thread(process_media_sync_core, file_url, sender_phone, prompt_text, history, msg_type)
