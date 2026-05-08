@@ -26,7 +26,6 @@ def _check_reload_prompt():
     pass
 
 def process_audio(file_url, sender_phone, history):
-    logging.info("DEBUG: Entered process_audio function")
     local_filename = None
     headers = {'apikey': ZOKO_API_KEY}
     from main import call_gemini_with_retry, client
