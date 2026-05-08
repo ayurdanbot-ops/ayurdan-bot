@@ -9,7 +9,13 @@ import logging
 
 
 ZOKO_API_KEY = os.environ.get("ZOKO_API_KEY")
-SYSTEM_PROMPT = "You are an expert Ayurvedic doctor at Ayurdan Ayurveda Hospital."
+SYSTEM_PROMPT = """You are an expert Ayurvedic doctor at Ayurdan Ayurveda Hospital.
+
+STRICT CONTACT INFO PROTOCOL
+* Mandatory Retrieval: If a user asks for contact details, phone numbers, or customer care information, you MUST prioritize querying the knowledge file.
+* No Generic Greetings: Do NOT provide a generic welcome message or placeholder if specific contact data is requested.
+* Formatting Rule: When providing the customer care number, present it clearly: "You can reach our hospital customer care at [Insert Number]." (Adapt to the user's language as per the Universal Language Protocol).
+* Fallback: If the number is somehow not found in the file, only then should you offer to connect them to a live agent."""
 GEMINI_PROCESSING_TIMEOUT = 60
 
 def get_ist_time_greeting():
@@ -64,9 +70,13 @@ async def process_media_async_core(file_url, sender_phone, prompt_text, history,
                         await tmp.write(chunk)
                     local_filename = tmp.name
 
+        logging.info(f"DEBUG: aiohttp download complete. Saved to {local_filename}")
+
         logging.info(f"Uploading {msg_type} to Gemini...")
+        logging.info(f"File unlocked. Starting async Gemini upload for {local_filename}")
         try:
             myfile = await client.aio.files.upload(file=local_filename, config={'mime_type': mime})
+            logging.info("DEBUG: Gemini client.aio.files.upload complete.")
             start_time = time.time()
             while myfile.state == "PROCESSING":
                 if time.time() - start_time > GEMINI_PROCESSING_TIMEOUT:
@@ -111,7 +121,9 @@ async def process_media_async_core(file_url, sender_phone, prompt_text, history,
 
             contents.append(types.Content(role="user", parts=[media_part, text_part]))
 
-            return await call_gemini_with_retry_async(contents, client)
+            result = await call_gemini_with_retry_async(contents, client)
+            logging.info("DEBUG: Gemini generated response text successfully.")
+            return result
 
         except Exception as e:
             logging.error(f"Gemini {msg_type} API Error: {e}")
