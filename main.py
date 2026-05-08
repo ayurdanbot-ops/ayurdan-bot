@@ -115,6 +115,7 @@ async def webhook(request: Request):
         return {"status": "ignored, missing data"}
 
     parts = []
+    response_text = ""
 
     try:
         from memory_manager import get_context, hash_user_id, chat_history
@@ -164,19 +165,17 @@ async def webhook(request: Request):
             user_message = user_input_for_history
 
     except Exception as e:
-        logging.error("Pipeline Error", exc_info=True)
+        logging.error(f"CRITICAL MEDIA ERROR: {e}")
+        logging.error(traceback.format_exc())
         fallback_msg = "ക്ഷമിക്കണം, സാങ്കേതിക തകരാർ കാരണം ഈ ഫയൽ പരിശോധിക്കാൻ കഴിഞ്ഞില്ല. ദയവായി നിങ്ങളുടെ ബുദ്ധിമുട്ടുകൾ ടൈപ്പ് ചെയ്ത് അയക്കാമോ?"
         send_zoko_message(phone_number, fallback_msg)
-        return {"status": "success"}
+        response_text = ""
+    finally:
+        if response_text:
+            add_interaction(phone_number, user_message, response_text)
+            send_zoko_message(phone_number, response_text)
 
+        clean_expired_sessions()
+        gc.collect()
 
-
-    # Save the interaction to update history and patient state
-    add_interaction(phone_number, user_message, response_text)
-
-    # Use background tasks to prevent waiting on outgoing I/O for webhook ack
-    send_zoko_message(phone_number, response_text)
-    clean_expired_sessions()
-
-    gc.collect()
     return {"status": "success"}
