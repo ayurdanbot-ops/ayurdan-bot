@@ -77,7 +77,7 @@ def call_gemini_with_retry(contents, client):
     return raw_text.strip()
 
 
-from media_handlers import handle_media_async
+from media_handlers import process_audio, process_image, process_pdf
 
 app = FastAPI()
 
@@ -146,11 +146,18 @@ async def webhook(request: Request):
             return get_expert_response("+" + sender, text, [], history_text, state_notes)
 
         # Image, Audio, PDF vs Text Logic
-        if msg_type in ["audio", "image", "document"] and file_url:
-            response_text = await handle_media_async(file_url, sender_phone, text_body, history, msg_type)
-            if msg_type == "document" and not user_input_for_history: user_input_for_history = "[Sent a PDF document]"
-            elif msg_type == "image" and not user_input_for_history: user_input_for_history = "[Sent an image]"
-            elif msg_type == "audio" and not user_input_for_history: user_input_for_history = "[Sent an audio message]"
+        if msg_type == "document" and file_url and file_url.lower().endswith(".pdf"):
+            send_whatsapp_message(sender_phone.replace("+", ""), "Reading your document... 📄", "text")
+            response_text = process_pdf(file_url, sender_phone, history)
+            if not user_input_for_history: user_input_for_history = "[Sent a PDF document]"
+        elif msg_type == "image" and file_url:
+            send_whatsapp_message(sender_phone.replace("+", ""), "Analyzing your image... 👁️", "text")
+            response_text = process_image(file_url, sender_phone, text_body, history)
+            if not user_input_for_history: user_input_for_history = "[Sent an image]"
+        elif msg_type == "audio" and file_url:
+            send_whatsapp_message(sender_phone.replace("+", ""), "Listening... 🎧", "text")
+            response_text = process_audio(file_url, sender_phone, history)
+            if not user_input_for_history: user_input_for_history = "[Sent an audio message]"
         elif text_body or msg_type == "text":
             response_text = get_ai_response(sender_phone, text_body, history)
 
