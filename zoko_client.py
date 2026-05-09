@@ -1,3 +1,4 @@
+import logging
 import requests
 import os
 from dotenv import load_dotenv
@@ -5,6 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def send_zoko_message(phone_number: str, text: str):
+    phone_number = phone_number.replace('+', '')
     zoko_api_key = os.environ.get("ZOKO_API_KEY")
     if not zoko_api_key:
         print("ZOKO_API_KEY configuration is missing.")
@@ -28,7 +30,9 @@ def send_zoko_message(phone_number: str, text: str):
         # Removed detailed response logging to prevent exposing sensitive downstream context
         print("Successfully dispatched message via Zoko.")
         return True
-    except requests.exceptions.RequestException:
-        # Removed the error text and full exception logging to prevent header/payload leakage
-        print("Failed to dispatch message via Zoko due to a network or validation error.")
+    except requests.exceptions.RequestException as e:
+        if hasattr(e, 'response') and e.response is not None:
+            logging.error(f"Zoko API Error {e.response.status_code}: {e.response.text}")
+        else:
+            logging.error(f"Zoko API Error: {str(e)}")
         return False
