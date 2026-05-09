@@ -100,7 +100,7 @@ def triage_user_intent(message_text):
         for word in words:
             if word in text_lower:
                 return expert
-    return "expert_rejuvenation" # Default
+    return "expert_rejuvenation" # Default (verified agent)
 
 
 def call_gemini_with_retry(contents, client, system_prompt=None):
@@ -160,7 +160,7 @@ def _download_media(file_url, suffix):
     tmp.close()
     return tmp.name
 
-def process_media(file_url, msg_type, system_prompt, history, text_body=""):
+def process_media(file_url, msg_type, system_prompt, history, expert_id, text_body=""):
     local_filename = None
     try:
         suffix = ".ogg"
@@ -247,21 +247,25 @@ def webhook():
             logging.info(f"Routed user to {expert_id}")
 
         # Dynamically load the correct agent's prompt
+        from agents.router import get_receptionist_prompt
+        BASE_SYSTEM_PROMPT = get_receptionist_prompt()
+
         try:
             expert_module = importlib.import_module(f"agents.{expert_id}")
-            current_system_prompt = getattr(expert_module, "EXPERT_KNOWLEDGE", "")
-            if not current_system_prompt:
-                current_system_prompt = getattr(expert_module, "SYSTEM_PROMPT", "")
-            current_system_prompt += "\n\nStrictly respond in the language the user speaks. You are an expert consultant. Apply AEAC framework."
-        except Exception as e:
-            logging.error(f"Failed to load expert module {expert_id}: {e}")
-            current_system_prompt = "You are an expert consultant for Ayurdan Ayurveda Hospital. Answer health questions safely."
+            expert_knowledge = getattr(expert_module, "EXPERT_KNOWLEDGE", "")
+            hospital_info = getattr(expert_module, "GLOBAL_HOSPITAL_INFO", "")
+        except ImportError:
+            logging.error(f"Failed to load expert module: {expert_id}")
+            expert_knowledge = ""
+            hospital_info = ""
+
+        current_system_prompt = f"{BASE_SYSTEM_PROMPT}\n\n*SPECIFIC EXPERT KNOWLEDGE*\n{expert_knowledge}\n\n*HOSPITAL INFO*\n{hospital_info}"
 
         response_text = ""
         user_input_for_history = user_message
 
         if message_type in ["audio", "image", "document"] and media_url:
-            response_text = process_media(media_url, message_type, current_system_prompt, history, user_message)
+            response_text = process_media(media_url, message_type, current_system_prompt, history, expert_id, user_message)
             if not user_input_for_history: user_input_for_history = f"[Sent a {message_type}]"
         elif user_message:
             contents = []
