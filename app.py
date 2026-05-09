@@ -24,16 +24,10 @@ DB_PATH = 'ayur_care.db'
 
 # --- Gemini Configuration ---
 flash_config = types.GenerateContentConfig(
-    thinking_config=types.ThinkingConfig(
-        thinking_level="minimal",
-        include_thoughts=False
-    )
+    temperature=0.7
 )
 pro_config = types.GenerateContentConfig(
-    thinking_config=types.ThinkingConfig(
-        include_thoughts=False,
-        thinking_budget=1024
-    )
+    temperature=0.7
 )
 
 # --- SQLite Session Management ---
@@ -115,10 +109,6 @@ def call_gemini_with_retry(contents, client, system_prompt=None):
         config = flash_config
         if system_prompt:
              config = types.GenerateContentConfig(
-                thinking_config=types.ThinkingConfig(
-                    thinking_level="minimal",
-                    include_thoughts=False
-                ),
                 system_instruction=system_prompt
             )
 
@@ -136,10 +126,6 @@ def call_gemini_with_retry(contents, client, system_prompt=None):
                 p_config = pro_config
                 if system_prompt:
                      p_config = types.GenerateContentConfig(
-                        thinking_config=types.ThinkingConfig(
-                            include_thoughts=False,
-                            thinking_budget=1024
-                        ),
                         system_instruction=system_prompt
                     )
                 response = client.models.generate_content(
