@@ -224,7 +224,7 @@ def webhook():
     phone_number = payload.get('platformSenderId')
     user_message = payload.get('text', "")
     message_type = payload.get('type')
-    media_url = payload.get("media_url")
+    media_url = payload.get("fileUrl")
 
     if not phone_number:
         return jsonify({"status": "ignored"})
@@ -293,7 +293,8 @@ def webhook():
                  expert_id = None
 
         update_session(phone_number, history, expert_id)
-        send_whatsapp_message(phone_number, response_text)
+        if response_text and isinstance(response_text, str) and response_text.strip():
+            send_whatsapp_message(phone_number, response_text.strip())
 
     except Exception as e:
         logging.error("Pipeline Error", exc_info=True)
