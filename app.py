@@ -247,8 +247,7 @@ def webhook():
             logging.info(f"Routed user to {expert_id}")
 
         # Dynamically load the correct agent's prompt
-        from agents.router import get_receptionist_prompt
-        BASE_SYSTEM_PROMPT = get_receptionist_prompt()
+        from system_prompt import SYSTEM_PROMPT as BASE_SYSTEM_PROMPT
 
         try:
             expert_module = importlib.import_module(f"agents.{expert_id}")
