@@ -1,7 +1,6 @@
-fastapi
-uvicorn
 google-genai
 requests
 python-dotenv
 pydantic
 flask
+gunicorn
