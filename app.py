@@ -17,6 +17,8 @@ logging.getLogger().setLevel(logging.INFO)
 
 load_dotenv()
 
+ZOKO_API_KEY = os.environ.get("ZOKO_API_KEY")
+
 app = Flask(__name__)
 client = genai.Client()
 
@@ -150,7 +152,6 @@ def send_whatsapp_message(phone, msg):
     send_zoko_message(phone, msg)
 
 def _download_media(file_url, suffix):
-    from zoko_client import ZOKO_API_KEY
     headers = {'apikey': ZOKO_API_KEY}
     r = requests.get(file_url, stream=True, headers=headers)
     r.raise_for_status()
