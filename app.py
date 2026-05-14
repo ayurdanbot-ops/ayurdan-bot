@@ -19,6 +19,22 @@ load_dotenv()
 
 ZOKO_API_KEY = os.environ.get("ZOKO_API_KEY")
 
+
+import datetime
+from zoneinfo import ZoneInfo
+
+def get_ist_time_greeting() -> str:
+    tz = ZoneInfo("Asia/Kolkata")
+    current_time = datetime.datetime.now(tz)
+    hour = current_time.hour
+    if 0 <= hour < 12:
+        return "Good morning"
+    elif 12 <= hour < 16:
+        return "Good afternoon"
+    else:
+        return "Good evening"
+
+
 app = Flask(__name__)
 client = genai.Client()
 
@@ -260,6 +276,9 @@ def webhook():
             hospital_info = ""
 
         current_system_prompt = f"{BASE_SYSTEM_PROMPT}\n\n*SPECIFIC EXPERT KNOWLEDGE*\n{expert_knowledge}\n\n*HOSPITAL INFO*\n{hospital_info}"
+
+        fresh_greeting = get_ist_time_greeting()
+        current_system_prompt = current_system_prompt.replace("{DYNAMIC_GREETING}", fresh_greeting)
 
         response_text = ""
         user_input_for_history = user_message
