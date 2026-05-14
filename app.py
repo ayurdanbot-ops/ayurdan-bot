@@ -3,6 +3,8 @@ import traceback
 import sqlite3
 import os
 import json
+import threading
+from collections import OrderedDict
 import time
 import tempfile
 import importlib
@@ -47,6 +49,31 @@ flash_config = types.GenerateContentConfig(
 pro_config = types.GenerateContentConfig(
     temperature=0.7
 )
+
+
+
+class ProcessedMessagesCache:
+    def __init__(self, capacity):
+        self.cache = OrderedDict()
+        self.capacity = capacity
+
+    def contains(self, message_id):
+        if not message_id:
+            return False
+        if message_id in self.cache:
+            self.cache.move_to_end(message_id)
+            return True
+        return False
+
+    def add(self, message_id):
+        if not message_id:
+            return
+        self.cache[message_id] = True
+        self.cache.move_to_end(message_id)
+        if len(self.cache) > self.capacity:
+            self.cache.popitem(last=False)
+
+processed_messages = ProcessedMessagesCache(1000)
 
 # --- SQLite Session Management ---
 def db_init():
@@ -177,7 +204,7 @@ def _download_media(file_url, suffix):
     tmp.close()
     return tmp.name
 
-def process_media(file_url, msg_type, system_prompt, history, expert_id, text_body=""):
+def process_media(file_url, msg_type, system_prompt, history_text, expert_id, text_body=""):
     local_filename = None
     try:
         suffix = ".ogg"
@@ -205,9 +232,8 @@ def process_media(file_url, msg_type, system_prompt, history, expert_id, text_bo
             raise ValueError(f"Processing failed. State: {myfile.state}")
 
         contents = []
-        for h in history:
-            role = "user" if h["role"] == "user" else "model"
-            contents.append(types.Content(role=role, parts=[types.Part.from_text(text=h["content"])]))
+        if history_text:
+            contents.append(types.Content(role="user", parts=[types.Part.from_text(text=f"Chat History:\n{history_text}")]))
 
         part_type = 'audio' if msg_type == 'audio' else 'image' if msg_type == 'image' else 'document'
 
@@ -236,6 +262,25 @@ def root():
 @app.route('/webhook', methods=['POST'])
 def webhook():
     payload = request.json
+    if not payload:
+        return "OK", 200
+
+    msg_id = payload.get('id')
+    if msg_id and processed_messages.contains(msg_id):
+        logging.info(f"Duplicate message ignored: {msg_id}")
+        return "OK", 200
+
+    if msg_id:
+        processed_messages.add(msg_id)
+
+    thread = threading.Thread(target=handle_message, args=(payload,))
+    thread.start()
+
+    return "OK", 200
+
+
+def handle_message(payload):
+
     logging.info(f'INCOMING ZOKO PAYLOAD: {payload}')
 
     phone_number = payload.get('platformSenderId')
@@ -244,7 +289,7 @@ def webhook():
     media_url = payload.get("fileUrl")
 
     if not phone_number:
-        return jsonify({"status": "ignored"})
+        return
 
     if message_type == 'audio':
         send_whatsapp_message(phone_number, "Listening to your message... 🎧")
@@ -257,6 +302,9 @@ def webhook():
         session = get_user_session(phone_number)
         history = session["history"]
         expert_id = session["assigned_expert"]
+
+        history_text = "\n".join([f"{'User' if h['role'] == 'user' else 'AI'}: {h['content']}" for h in history])
+
 
         # Intercept & Load Expert
         if not expert_id:
@@ -284,14 +332,13 @@ def webhook():
         user_input_for_history = user_message
 
         if message_type in ["audio", "image", "document"] and media_url:
-            response_text = process_media(media_url, message_type, current_system_prompt, history, expert_id, user_message)
+            response_text = process_media(media_url, message_type, current_system_prompt, history_text, expert_id, user_message)
             if not user_input_for_history: user_input_for_history = f"[Sent a {message_type}]"
         elif user_message:
             contents = []
-            for h in history:
-                role = "user" if h["role"] == "user" else "model"
-                contents.append(types.Content(role=role, parts=[types.Part.from_text(text=h["content"])]))
-            contents.append(types.Content(role="user", parts=[types.Part.from_text(text=user_message)]))
+            if history_text:
+                contents.append(types.Content(role="user", parts=[types.Part.from_text(text=f"Chat History:\n{history_text}")]))
+            contents.append(types.Content(role="user", parts=[types.Part.from_text(text=f"Current User Input: {user_message}")]))
             response_text = call_gemini_with_retry(contents, client, current_system_prompt)
 
 
@@ -301,8 +348,8 @@ def webhook():
              history.append({"role": "model", "content": response_text})
 
         # Cap memory
-        if len(history) > 6:
-            history = history[-6:]
+        if len(history) > 20:
+            history = history[-20:]
 
         # The Handover / Unlock (Check for completion/goodbye)
         if any(word in response_text.lower() for word in ["goodbye", "നന്ദി", "bye", "take care"]):
@@ -323,7 +370,7 @@ def webhook():
 
     import gc
     gc.collect()
-    return jsonify({"status": "success"})
+    return
 
 
 if __name__ == '__main__':
