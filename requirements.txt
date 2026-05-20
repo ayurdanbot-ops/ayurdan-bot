@@ -1,4 +1,4 @@
-google-genai
+google-cloud-aiplatform
 requests
 python-dotenv
 pydantic
