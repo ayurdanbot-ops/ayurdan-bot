@@ -50,8 +50,8 @@ client = genai.Client(
     location=location
 )
 
-MODEL_ID = 'gemini-3-flash-preview'
-PRO_MODEL_ID = 'gemini-3-pro-preview'
+MODEL_ID = 'gemini-3.0-flash-preview'
+PRO_MODEL_ID = 'gemini-3.0-pro-preview'
 
 DB_PATH = 'ayur_care.db'
 
