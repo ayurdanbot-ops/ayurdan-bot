@@ -10,8 +10,8 @@ import tempfile
 import importlib
 import requests
 from flask import Flask, request, jsonify
-from google import genai
-from google.genai import types
+import vertexai
+from vertexai.generative_models import GenerativeModel, Part, Content, SafetySetting
 from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', force=True)
@@ -38,17 +38,25 @@ def get_ist_time_greeting() -> str:
 
 
 app = Flask(__name__)
-client = genai.Client()
+
+# Ensure GCP_PROJECT_ID and GCP_LOCATION (e.g., 'us-central1' or 'asia-south1') are set in the environment
+project_id = os.environ.get('GCP_PROJECT_ID')
+location = os.environ.get('GCP_LOCATION', 'us-central1')
+vertexai.init(project=project_id, location=location)
+
+# Initialize the Vertex Generative Model
+model = GenerativeModel('gemini-1.5-flash-002')
+pro_model = GenerativeModel('gemini-1.5-pro')
 
 DB_PATH = 'ayur_care.db'
 
 # --- Gemini Configuration ---
-flash_config = types.GenerateContentConfig(
-    temperature=0.7
-)
-pro_config = types.GenerateContentConfig(
-    temperature=0.7
-)
+flash_config = {
+    'temperature': 0.7,
+}
+pro_config = {
+    'temperature': 0.7,
+}
 
 
 
@@ -148,19 +156,16 @@ def triage_user_intent(message_text):
     return "expert_rejuvenation" # Default (verified agent)
 
 
-def call_gemini_with_retry(contents, client, system_prompt=None):
+def call_gemini_with_retry(contents, unused_client, system_prompt=None):
     raw_text = ""
     try:
-        config = flash_config
+        current_model = model
         if system_prompt:
-             config = types.GenerateContentConfig(
-                system_instruction=system_prompt
-            )
+            current_model = GenerativeModel("gemini-1.5-flash-002", system_instruction=system_prompt)
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=contents,
-            config=config
+        response = current_model.generate_content(
+            contents,
+            generation_config=flash_config
         )
         raw_text = response.text
     except Exception as e:
@@ -168,15 +173,13 @@ def call_gemini_with_retry(contents, client, system_prompt=None):
         if "429" in err_str or "quota" in err_str or "503" in err_str or "unavailable" in err_str:
             print("FLASH OVERLOAD/QUOTA EXCEEDED (429/503). Falling back to Pro...")
             try:
-                p_config = pro_config
+                current_pro_model = pro_model
                 if system_prompt:
-                     p_config = types.GenerateContentConfig(
-                        system_instruction=system_prompt
-                    )
-                response = client.models.generate_content(
-                    model="gemini-2.5-pro",
-                    contents=contents,
-                    config=p_config
+                    current_pro_model = GenerativeModel("gemini-1.5-pro", system_instruction=system_prompt)
+
+                response = current_pro_model.generate_content(
+                    contents,
+                    generation_config=pro_config
                 )
                 raw_text = response.text
             except Exception as pro_e:
@@ -220,30 +223,21 @@ def process_media(file_url, msg_type, system_prompt, history_text, expert_id, te
 
         local_filename = _download_media(file_url, suffix)
 
-        myfile = client.files.upload(file=local_filename, config={'mime_type': mime})
-        start_time = time.time()
-        while myfile.state == "PROCESSING":
-            if time.time() - start_time > 60:
-                 raise TimeoutError("Gemini file processing timed out.")
-            time.sleep(2)
-            myfile = client.files.get(name=myfile.name)
-
-        if myfile.state != "ACTIVE":
-            raise ValueError(f"Processing failed. State: {myfile.state}")
+        with open(local_filename, 'rb') as f:
+            file_bytes = f.read()
 
         contents = []
         if history_text:
-            contents.append(types.Content(role="user", parts=[types.Part.from_text(text=f"Chat History:\n{history_text}")]))
+            contents.append(Content(role='user', parts=[Part.from_text(text=f'Chat History:\n{history_text}')]))
 
         part_type = 'audio' if msg_type == 'audio' else 'image' if msg_type == 'image' else 'document'
+        prompt_t = text_body if text_body else f'Please analyze this {part_type}.'
 
-        prompt_t = text_body if text_body else f"Please analyze this {part_type}."
+        media_part = Part.from_data(data=file_bytes, mime_type=mime)
+        text_part = Part.from_text(text=prompt_t)
+        contents.append(Content(role='user', parts=[media_part, text_part]))
 
-        media_part = types.Part.from_uri(file_uri=myfile.uri, mime_type=mime)
-        text_part = types.Part.from_text(text=prompt_t)
-        contents.append(types.Content(role="user", parts=[media_part, text_part]))
-
-        return call_gemini_with_retry(contents, client, system_prompt)
+        return call_gemini_with_retry(contents, None, system_prompt)
 
     except Exception as e:
         logging.error(f"Media Process Error: {e}", exc_info=True)
@@ -337,9 +331,9 @@ def handle_message(payload):
         elif user_message:
             contents = []
             if history_text:
-                contents.append(types.Content(role="user", parts=[types.Part.from_text(text=f"Chat History:\n{history_text}")]))
-            contents.append(types.Content(role="user", parts=[types.Part.from_text(text=f"Current User Input: {user_message}")]))
-            response_text = call_gemini_with_retry(contents, client, current_system_prompt)
+                contents.append(Content(role="user", parts=[Part.from_text(text=f"Chat History:\n{history_text}")]))
+            contents.append(Content(role="user", parts=[Part.from_text(text=f"Current User Input: {user_message}")]))
+            response_text = call_gemini_with_retry(contents, None, current_system_prompt)
 
 
         if user_input_for_history:
