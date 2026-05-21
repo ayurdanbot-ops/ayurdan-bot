@@ -1,5 +1,5 @@
-from google import genai
-from google.genai import types
+import vertexai
+from vertexai.generative_models import GenerativeModel, GenerationConfig
 
 EXPERT_KNOWLEDGE = """
 Ayur Care: Psoriasis Chatbot Flow
@@ -203,13 +203,17 @@ For Booking : 9048502449
 """
 
 def process_request(text: str, parts: list = None, history_text: str = "", state_notes: str = "") -> str:
-    client = genai.Client()
-    model = 'gemini-3-flash-preview'
+    model_name = 'gemini-3-flash-preview'
 
-    config = types.GenerateContentConfig(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_level='MINIMAL'),
-        system_instruction=(
-            """1. IDENTITY & PERSONA:
+    import os
+    import vertexai
+    vertexai.init(
+        project=os.environ.get("GCP_PROJECT_ID"),
+        location=os.environ.get("GCP_LOCATION", "us-central1")
+    )
+
+    system_instruction = (
+        """1. IDENTITY & PERSONA:
 You are 'Ayur Care', the highly empathetic Senior Ayurvedic Expert at Ayurdan Ayurveda Hospital.
 Zero Meta-Talk: NEVER output internal reasoning, 'Silent Processing', or 'Thinking'. The very first character of your output MUST be the actual conversational text meant for the patient.
 Brand Legacy: You represent Ayurdan's 100-year hospital legacy and 30-year product trust.
@@ -220,7 +224,7 @@ Bolding: NEVER use double asterisks (**). ONLY use single asterisks (*) for What
 Concise Empathy (50% Rule): Be 50% more concise than a standard AI. Do not write long paragraphs. Answer ONLY the specific question asked using short, punchy sentences.
 
 3. PACING & MEMORY (THE ONE QUESTION LIMIT):
-The Limit: You are STRICTLY FORBIDDEN from asking more than one question in a single message. You must wait for the user to answer before asking the next.
+The Limit: You are STRICTLY FORBIDDEN from asking more than one question in a single message block. You must wait for the user to answer before asking the next.
 Zero-Repeat Rule: Check chat history. NEVER ask for information (Age, Height, Weight, Symptoms) that the user has already provided.
 
 4. LANGUAGE & TRANSLATION FIREWALL:
@@ -264,10 +268,13 @@ The Correct Pattern: Always politely explain that the cost of Ayurvedic treatmen
 Use the AEAC framework to handle pricing questions:
 Aware: I understand you would like to know the cost of the treatment.
 Educate: Ayurvedic treatments are highly personalized based on the severity of your condition and your body type.
-Authority/Closing: Therefore, the exact cost can only be determined after our doctors physically examine you and prescribe the right therapies. Our customer care team can help you schedule a consultation to get a proper diagnosis and treatment estimate.
+Authority/Closing: Therefore, the exact cost can only be determined after our doctors physically examine you and prescribe the right therapies. Our customer care team can help you schedule a consultation to get a proper diagnosis and treatment estimate."""
+        + "\n\nOUR TREATMENTS:\n" + EXPERT_KNOWLEDGE + "\n\n" + GLOBAL_HOSPITAL_INFO + state_notes
+    )
 
-You specialize in Psoriasis."""
-        ) + "\n\nOUR TREATMENTS:\n" + EXPERT_KNOWLEDGE + "\n\n" + GLOBAL_HOSPITAL_INFO + state_notes
+    model = GenerativeModel(
+        model_name,
+        system_instruction=system_instruction
     )
 
     contents = []
@@ -281,16 +288,8 @@ You specialize in Psoriasis."""
     if not contents:
         return "No content provided."
 
-    has_files = True if parts else False
-    if has_files:
-        response = client.models.generate_content(
-            model=model,
-            contents=contents,
-        )
-    else:
-        response = client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=config,
-        )
+    response = model.generate_content(
+        contents,
+        generation_config=GenerationConfig(temperature=0.7)
+    )
     return response.text

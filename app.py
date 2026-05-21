@@ -10,8 +10,8 @@ import tempfile
 import importlib
 import requests
 from flask import Flask, request, jsonify
-from google import genai
-from google.genai import types
+import vertexai
+from vertexai.generative_models import GenerativeModel, Part, GenerationConfig
 from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', force=True)
@@ -20,7 +20,7 @@ logging.getLogger().setLevel(logging.INFO)
 load_dotenv()
 
 ZOKO_API_KEY = os.environ.get("ZOKO_API_KEY")
-
+DB_PATH = 'ayur_care.db'
 
 import datetime
 from zoneinfo import ZoneInfo
@@ -38,19 +38,18 @@ def get_ist_time_greeting() -> str:
 
 
 app = Flask(__name__)
-client = genai.Client()
+vertexai.init(
+    project=os.environ.get("GCP_PROJECT_ID"),
+    location=os.environ.get("GCP_LOCATION", "us-central1")
+)
+model = GenerativeModel("gemini-3-flash-preview")
 
-DB_PATH = 'ayur_care.db'
-
-# --- Gemini Configuration ---
-flash_config = types.GenerateContentConfig(
+flash_config = GenerationConfig(
     temperature=0.7
 )
-pro_config = types.GenerateContentConfig(
+pro_config = GenerationConfig(
     temperature=0.7
 )
-
-
 
 class ProcessedMessagesCache:
     def __init__(self, capacity):
@@ -148,35 +147,35 @@ def triage_user_intent(message_text):
     return "expert_rejuvenation" # Default (verified agent)
 
 
-def call_gemini_with_retry(contents, client, system_prompt=None):
+def call_gemini_with_retry(contents, system_prompt=None):
     raw_text = ""
     try:
-        config = flash_config
+        dynamic_model = model
         if system_prompt:
-             config = types.GenerateContentConfig(
+            dynamic_model = GenerativeModel(
+                "gemini-3-flash-preview",
                 system_instruction=system_prompt
             )
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=contents,
-            config=config
+        response = dynamic_model.generate_content(
+            contents,
+            generation_config=flash_config
         )
         raw_text = response.text
     except Exception as e:
         err_str = str(e).lower()
-        if "429" in err_str or "quota" in err_str or "503" in err_str or "unavailable" in err_str:
-            print("FLASH OVERLOAD/QUOTA EXCEEDED (429/503). Falling back to Pro...")
+        if any(x in err_str for x in ["429", "quota", "503", "unavailable"]):
+            print("FLASH OVERLOAD/QUOTA EXCEEDED (429/503). Falling back to Pro (Simulated with Preview)...")
             try:
-                p_config = pro_config
+                dynamic_model = model
                 if system_prompt:
-                     p_config = types.GenerateContentConfig(
+                    dynamic_model = GenerativeModel(
+                        "gemini-3-flash-preview",
                         system_instruction=system_prompt
                     )
-                response = client.models.generate_content(
-                    model="gemini-2.5-pro",
-                    contents=contents,
-                    config=p_config
+                response = dynamic_model.generate_content(
+                    contents,
+                    generation_config=pro_config
                 )
                 raw_text = response.text
             except Exception as pro_e:
@@ -220,30 +219,20 @@ def process_media(file_url, msg_type, system_prompt, history_text, expert_id, te
 
         local_filename = _download_media(file_url, suffix)
 
-        myfile = client.files.upload(file=local_filename, config={'mime_type': mime})
-        start_time = time.time()
-        while myfile.state == "PROCESSING":
-            if time.time() - start_time > 60:
-                 raise TimeoutError("Gemini file processing timed out.")
-            time.sleep(2)
-            myfile = client.files.get(name=myfile.name)
-
-        if myfile.state != "ACTIVE":
-            raise ValueError(f"Processing failed. State: {myfile.state}")
+        with open(local_filename, 'rb') as f:
+            media_data = f.read()
 
         contents = []
         if history_text:
-            contents.append(types.Content(role="user", parts=[types.Part.from_text(text=f"Chat History:\n{history_text}")]))
+            contents.append(f"Chat History:\n{history_text}")
 
         part_type = 'audio' if msg_type == 'audio' else 'image' if msg_type == 'image' else 'document'
-
         prompt_t = text_body if text_body else f"Please analyze this {part_type}."
 
-        media_part = types.Part.from_uri(file_uri=myfile.uri, mime_type=mime)
-        text_part = types.Part.from_text(text=prompt_t)
-        contents.append(types.Content(role="user", parts=[media_part, text_part]))
+        media_part = Part.from_data(data=media_data, mime_type=mime)
+        contents.append([media_part, prompt_t])
 
-        return call_gemini_with_retry(contents, client, system_prompt)
+        return call_gemini_with_retry(contents, system_prompt)
 
     except Exception as e:
         logging.error(f"Media Process Error: {e}", exc_info=True)
@@ -337,9 +326,9 @@ def handle_message(payload):
         elif user_message:
             contents = []
             if history_text:
-                contents.append(types.Content(role="user", parts=[types.Part.from_text(text=f"Chat History:\n{history_text}")]))
-            contents.append(types.Content(role="user", parts=[types.Part.from_text(text=f"Current User Input: {user_message}")]))
-            response_text = call_gemini_with_retry(contents, client, current_system_prompt)
+                contents.append(f"Chat History:\n{history_text}")
+            contents.append(f"Current User Input: {user_message}")
+            response_text = call_gemini_with_retry(contents, current_system_prompt)
 
 
         if user_input_for_history:
@@ -353,9 +342,6 @@ def handle_message(payload):
 
         # The Handover / Unlock (Check for completion/goodbye)
         if any(word in response_text.lower() for word in ["goodbye", "നന്ദി", "bye", "take care"]):
-             # We might want to clear expert_id but let's just do it based on some keyword.
-             # Actually, the user requested to set it to None if marked complete.
-             # We will just do a simple check for "goodbye" equivalents in english and malayalam
              if "goodbye" in response_text.lower() or "വിളിക്കാം" in response_text.lower() or "[HANDOVER]" in response_text:
                  expert_id = None
 
