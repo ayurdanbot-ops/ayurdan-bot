@@ -140,7 +140,7 @@ def triage_user_intent(message_text):
 def call_gemini_with_retry(contents, system_prompt=None):
     try:
         if system_prompt:
-            dynamic_model = GenerativeModel("gemini-3-flash", system_instruction=system_prompt)
+            dynamic_model = GenerativeModel("gemini-3-flash-preview", system_instruction=system_prompt)
         else:
             dynamic_model = model
 
