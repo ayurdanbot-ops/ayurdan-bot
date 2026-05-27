@@ -1,223 +1,23 @@
 import vertexai
 from vertexai.generative_models import GenerativeModel, Part
 
-EXPERT_KNOWLEDGE = '''
-വിഭാഗം 1: പ്രസവരക്ഷയുടെ അടിസ്ഥാന പാഠങ്ങൾ (Basics)
+EXPERT_KNOWLEDGE = """
+AYURVEDIC KNOWLEDGE: POST-DELIVERY CARE (Prasavaraksha)
+- Root Cause: Pregnancy and childbirth lead to significant Vata aggravation and depletion of body tissues (Dhatu Kshaya).
+- Treatment Approach: Focuses on Prasavaraksha (post-natal care) to restore strength, balance Vata, improve lactation, and aid uterine recovery.
+- Therapies: Abhyangam, herbal baths (Vethu kuli), belly binding, and specialized postpartum nutrition (Lahyams/Kashayams).
+- Benefits: Physical recovery, mental well-being, and strengthening the mother's immune system.
 
- * എന്താണ് പ്രസവരക്ഷ?
-   പ്രസവമെന്ന കഠിനമായ പ്രക്രിയയ്ക്ക് ശേഷം അമ്മയുടെ ശരീരം പഴയ അവസ്ഥയിലേക്ക് തിരിച്ചെത്താൻ നൽകുന്ന ശാസ്ത്രീയമായ ആയുർവേദ പരിചരണമാണ് പ്രസവരക്ഷ. ഇത് കേവലം ഒരു മസാജ് മാത്രമല്ല, ആന്തരിക അവയവങ്ങളുടെ ശുദ്ധീകരണവും കൂടിയാണ്.
+DIAGNOSTIC QUESTIONS (INVESTIGATION PHASE):
+- When was the delivery (how many days/weeks ago), and was it a normal delivery or C-section?
+- Are you experiencing specific issues like back pain, low energy, or difficulty with lactation?
+- How is your sleep and emotional well-being currently?
+- Do you have any other health conditions like high blood pressure or diabetes?
+- Are you currently following any specific post-natal routine or taking medications?
 
- * പ്രസവരക്ഷ നിർബന്ധമായും ചെയ്യേണ്ടതുണ്ടോ?
-   അതെ. ഒമ്പത് മാസം നീണ്ട ഗർഭകാലവും പ്രസവവും സ്ത്രീയുടെ ശരീരത്തിൽ വലിയ മാറ്റങ്ങൾ ഉണ്ടാക്കുന്നു. അത് ശരിയായ രീതിയിൽ ചികിത്സിച്ച് പഴയപടി ആക്കിയില്ലെങ്കിൽ ഭാവിയിൽ വിട്ടുമാറാത്ത ആരോഗ്യപ്രശ്നങ്ങൾക്ക് കാരണമാകും.
- * പ്രസവരക്ഷ ചെയ്തില്ലെങ്കിൽ എന്ത് സംഭവിക്കും?
-   നടുവേദന, സന്ധിവേദന, ഗർഭപാത്രം താഴേക്കിറങ്ങുക (Uterine prolapse), അമിതവണ്ണം, സ്ട്രെച്ച് മാർക്കുകൾ, മാനസികമായ സമ്മർദ്ദം (Postpartum Depression) എന്നിവ വരാൻ സാധ്യതയുണ്ട്.
- * പലരും ഇത് ചെയ്യുന്നില്ലല്ലോ, അവർക്കൊന്നും ഒന്നും സംഭവിക്കുന്നില്ലല്ലോ?
-   പലർക്കും ഉടനെ പ്രശ്നങ്ങൾ കണ്ടെന്നു വരില്ല. എന്നാൽ 40 വയസ്സിന് ശേഷം വിട്ടുമാറാത്ത വാത സംബന്ധമായ അസുഖങ്ങളും നട്ടെല്ല് വേദനയും ഇവരിൽ കൂടുതലായി കണ്ടുവരുന്നു. പഴയകാലത്തെ അമ്മമാർക്ക് നല്ല ആരോഗ്യമുണ്ടായിരുന്നത് അവർ കൃത്യമായി പ്രസവരക്ഷ എടുത്തിരുന്നത് കൊണ്ടാണ്.
- * പ്രസവരക്ഷയുടെ പ്രധാന നേട്ടങ്ങൾ എന്തെല്ലാമാണ്?
-   പേശികളുടെയും നാഡികളുടെയും അയവ് കുറയ്ക്കുന്നു, സ്ട്രെസ് ഹോർമോൺ കുറയ്ക്കുന്നു, ശരീരത്തിലെ നീർക്കെട്ട് മാറ്റുന്നു, സ്ട്രെച്ച് മാർക്കുകൾ ഇല്ലാതാക്കുന്നു, ഉറക്കം മെച്ചപ്പെടുത്തുന്നു, ശരീരത്തിന് പഴയ ആകൃതി തിരിച്ചു നൽകുന്നു.
- * അലോപ്പതി ഡോക്ടർമാർ ഇത് വേണ്ട എന്ന് പറയാൻ കാരണമെന്താണ്?
-   അലോപ്പതിയിൽ പ്രസവം ഒരു സ്വാഭാവിക പ്രക്രിയയായാണ് കാണുന്നത്. പലപ്പോഴും പരിശീലനം ലഭിക്കാത്ത ആളുകൾ വീട്ടിൽ വന്നു ചെയ്യുന്ന മസാജ് ഇൻഫെക്ഷനോ മറ്റു ബുദ്ധിമുട്ടുകളോ ഉണ്ടാക്കുമെന്ന് അവർ ഭയപ്പെടുന്നു. അതുകൊണ്ടാണ് ഹോസ്പിറ്റൽ അധിഷ്ഠിത ചികിത്സ ഞങ്ങൾ നിർദ്ദേശിക്കുന്നത്.
- * ഡോക്ടർമാരുടെ എതിർപ്പിനെ എങ്ങനെ നേരിടണം?
-   പ്രസവരക്ഷ എന്നാൽ വെറും മസാജ് മാത്രമല്ല. ഇത് ശാസ്ത്രീയമായ ഔഷധ സേവയും ശുദ്ധീകരണവുമാണ്. ഡോക്ടറുടെ മേൽനോട്ടത്തിൽ ചെയ്യുന്ന ചികിത്സയായതിനാൽ ഇത് പൂർണ്ണ സുരക്ഷിതമാണെന്ന് അവരെ ബോധ്യപ്പെടുത്തണം.
- * ഇതൊരു ഇമോഷണൽ ഇൻവെസ്റ്റ്‌മെന്റ് ആണെന്ന് പറയുന്നത് എന്തുകൊണ്ട്?
-   അമ്മ ആരോഗ്യമുള്ളവളായിരുന്നാൽ മാത്രമേ കുഞ്ഞിനെ നന്നായി പരിചരിക്കാൻ സാധിക്കൂ. അമ്മയുടെ സന്തോഷമാണ് കുഞ്ഞിന്റെ വളർച്ചയുടെ അടിസ്ഥാനം.
- * പഴയകാലത്തെ പ്രസവരക്ഷയും അയൂർദാനിലെ ചികിത്സയും തമ്മിലുള്ള വ്യത്യാസം?
-   പഴയ രീതിയിൽ ശാസ്ത്രീയമായ അളവുകൾ ഉണ്ടായിരുന്നില്ല. ഇവിടെ ഓരോ ആളുടെയും പ്രകൃതം (Body Constitution) നോക്കിയാണ് ചികിത്സ നിശ്ചയിക്കുന്നത്.
- * മരുന്നുകൾ കുഞ്ഞിന് ദോഷം ചെയ്യുമോ?
-   ഒരിക്കലുമില്ല. മുലപ്പാൽ വർദ്ധിപ്പിക്കാനും കുഞ്ഞിന് പ്രതിരോധശേഷി നൽകാനും സഹായിക്കുന്ന ഔഷധങ്ങളാണ് ഞങ്ങൾ നൽകുന്നത്.
-വിഭാഗം 2: ചികിത്സാ സമയവും രീതികളും (Timing & Duration)
- * നോർമൽ ഡെലിവറി ആണെങ്കിൽ എത്ര ദിവസത്തിന് ശേഷം തുടങ്ങാം?
-   സാധാരണയായി ഡിസ്ചാർജ് ആയി 7 ദിവസത്തിന് ശേഷം ചികിത്സ തുടങ്ങാവുന്നതാണ്.
- * സിസേറിയൻ (LSCS) ആണെങ്കിൽ എത്ര ദിവസം കഴിഞ്ഞ് തുടങ്ങണം?
-   സർജറിയുടെ മുറിവ് ഉണങ്ങുന്നതിന് അനുസരിച്ച് 14 മുതൽ 21 ദിവസത്തിന് ശേഷം തുടങ്ങാം. ഡോക്ടറുടെ പരിശോധനയ്ക്ക് ശേഷമേ ഇത് തീരുമാനിക്കൂ.
- * 7 ദിവസത്തെ പാക്കേജ് കൊണ്ട് ഗുണമുണ്ടോ?
-   ഉണ്ട്. ശരീരത്തിലെ പ്രാഥമികമായ വേദനകളും നീർക്കെട്ടും മാറാൻ ഇത് സഹായിക്കും.
- * 10 ദിവസത്തെ പാക്കേജ് ആർക്കാണ് അനുയോജ്യം?
-   മിതമായ രീതിയിലുള്ള പേശീവേദനയും തളർച്ചയും ഉള്ളവർക്ക് ഇത് ഫലപ്രദമാണ്.
- * 14 ദിവസത്തെ പാക്കേജിന്റെ പ്രത്യേകത എന്താണ്?
-   ഇത് ശരീരത്തെ ഏകദേശം പഴയ രീതിയിലേക്ക് എത്തിക്കാൻ സഹായിക്കുന്ന ഒരു സമഗ്ര പാക്കേജാണ്.
- * 21 ദിവസത്തെ പാക്കേജ് എന്തിനാണ് ശുപാർശ ചെയ്യുന്നത്?
-   ഗർഭപാത്രത്തിന്റെ ശുദ്ധീകരണവും ശരീരത്തിന്റെ ആകൃതി തിരിച്ചുപിടിക്കാനും ഏറ്റവും നല്ലത് 21 ദിവസത്തെ ചികിത്സയാണ്.
- * 28 ദിവസത്തെ ചികിത്സയുടെ നേട്ടം എന്താണ്?
-   ശരീരത്തിന്റെ പൂർണ്ണമായ പുനർജ്ജീവനം (Rejuvenation) ഈ കാലയളവിൽ സാധ്യമാകും. ഏറ്റവും മികച്ച ഫലം നൽകുന്നത് ഇതാണ്.
- * എപ്പോഴാണ് ബുക്കിംഗ് ചെയ്യേണ്ടത്?
-   ഗർഭകാലത്തിന്റെ ഏഴാം മാസത്തിൽ തന്നെ ബുക്ക് ചെയ്യുന്നതാണ് നല്ലത്. അതാകുമ്പോൾ അവസാന നിമിഷത്തെ തിരക്ക് ഒഴിവാക്കാം.
- * ചികിത്സാ സമയത്ത് കുഞ്ഞിനെ ആര് നോക്കും?
-   ഹോസ്പിറ്റലിൽ കൂട്ടിരിപ്പുകാർക്ക് സൗകര്യമുണ്ട്. അമ്മ ചികിത്സയിൽ ആയിരിക്കുമ്പോൾ കുഞ്ഞിനെ നോക്കാൻ വേണ്ട സഹായങ്ങൾ ഞങ്ങൾ നൽകും.
- * മഴക്കാലമാണോ ചികിത്സയ്ക്ക് നല്ലത്?
-   ആയുർവേദ ചികിത്സയ്ക്ക് കർക്കിടകം പോലുള്ള മഴക്കാലം നല്ലതാണ്. എങ്കിലും പ്രസവരക്ഷ ഏത് കാലാവസ്ഥയിലും ചെയ്യാവുന്നതാണ്.
-വിഭാഗം 3: ചികിത്സകൾ ഏതൊക്കെ? (Specific Treatments)
- * അമ്മയ്ക്കായി നൽകുന്ന പ്രധാന ചികിത്സകൾ എന്തെല്ലാമാണ്?
-   വേദ് കിഴി, വേദ് കുളി, ശിരോ അഭ്യംഗം, മുഖലേപം, ഉദര വേഷ്ടനം തുടങ്ങി നിരവധി ചികിത്സകളുണ്ട്.
-
-* എന്താണ് വേദ് കിഴി?
-   പ്രസവാനന്തരമുള്ള നടുവേദനയ്ക്കും സന്ധിവേദനയ്ക്കും മരുന്നുകൾ ചേർത്ത കിഴി ഉപയോഗിച്ചുള്ള ചികിത്സയാണിത്. ഇത് വളരെ ഫലപ്രദമാണ്.
- * എന്താണ് വേദ് കുളി?
-   പലതരം ഔഷധ ചെടികൾ ഇട്ടു തിളപ്പിച്ച വെള്ളത്തിലുള്ള കുളിയാണിത്. ഇത് ശരീരത്തിലെ അണുബാധ തടയാനും പേശികൾക്ക് ബലം നൽകാനും സഹായിക്കുന്നു.
- * ഉദര വേഷ്ടനം (Abdominal Wrapping) എന്തിനാണ്?
-   പ്രസവശേഷം അയഞ്ഞുപോയ വയറിലെ പേശികൾ പഴയപടി ആക്കാനും വയർ കുറയ്ക്കാനും ഇത് സഹായിക്കുന്നു.
- * ശിരോ അഭ്യംഗം എന്തിനാണ് നൽകുന്നത്?
-   തലയിലെ മസാജ് ആണ് ഇത്. പ്രസവാനന്തരമുള്ള മുടികൊഴിച്ചിൽ തടയാനും മാനസിക പിരിമുറുക്കം കുറയ്ക്കാനും ഇത് സഹായിക്കുന്നു.
- * മുഖലേപം ചെയ്യുന്നത് എന്തിനാണ്?
-   ഗർഭകാലത്തുണ്ടാകുന്ന മുഖത്തെ കരിമംഗല്യം (Pigmentation) മാറാനും മുഖകാന്തി വർദ്ധിപ്പിക്കാനും ഇത് സഹായിക്കും.
- * എന്താണ് കേശ ധൂപനം?
-   ഔഷധ പുക തലമുടിയിൽ ഏൽപ്പിക്കുന്ന രീതിയാണിത്. ഇത് മുടി പെട്ടെന്ന് ഉണങ്ങാനും തലവേദന, ജലദോഷം എന്നിവ തടയാനും സഹായിക്കുന്നു.
- * മെഡിക്കേറ്റഡ് ധൂമപാനം എന്നാൽ എന്താണ്?
-   ശ്വാസകോശ ശുദ്ധീകരണത്തിനും കഫക്കെട്ട് വരാതിരിക്കാനും നൽകുന്ന ഔഷധ പുകയാണിത്.
- * ഫൂട്ട് മസാജ് ചെയ്യുന്നത് എന്തിനാണ്?
-   ശരീരത്തിലെ രക്തയോട്ടം വർദ്ധിപ്പിക്കാനും കാലിലെ നീർക്കെട്ട് കുറയ്ക്കാനും ഇത് സഹായിക്കും.
- * യോനി ധൂപനം (Yoni Dhupanam) എന്തിനാണ്?
-   ഗർഭപാത്രത്തിലെയും യോനിയിലെയും അണുബാധകൾ തടയാനും മുറിവുകൾ വേഗത്തിൽ ഉണങ്ങാനും ഇത് സഹായിക്കുന്നു.
- * എന്താണ് ഞവരത്തേപ്പ്?
-   ശരീരത്തിന് ബലവും പോഷണവും നൽകാൻ ഞവര അരി ഉപയോഗിച്ചുള്ള ചികിത്സയാണിത്.
- * എന്താണ് ഇലക്കിഴി?
-   വാതസംബന്ധമായ വേദനകൾ മാറ്റാൻ ഔഷധ ഇലകൾ കൊണ്ടുള്ള കിഴിയാണിത്.
- * എന്താണ് പൊടിക്കിഴി?
-   ശരീരത്തിലെ മേദസ്സ് (Fat) കുറയ്ക്കാനും നീർക്കെട്ട് മാറ്റാനും ഇത് ഉപയോഗിക്കുന്നു.
- * സർവ്വാംഗ അഭ്യംഗം എന്നാൽ എന്താണ്?
-   ശരീരം മുഴുവൻ തൈലം പുരട്ടിയുള്ള മസാജ് ആണിത്.
- * കുഞ്ഞിന് എന്തെങ്കിലും ചികിത്സ നൽകുന്നുണ്ടോ?
-   അതെ, 'ശിശു അഭ്യംഗം' ഞങ്ങൾ നൽകുന്നുണ്ട്.
- * എന്താണ് ശിശു അഭ്യംഗം?
-   കുഞ്ഞിന്റെ ശരീരത്തിൽ എണ്ണ തേപ്പിച്ചു കുളിപ്പിക്കുന്ന രീതി. ഇത് കുഞ്ഞിന്റെ എല്ലുകൾക്കും പേശികൾക്കും ബലം നൽകുന്നു.
- * കുഞ്ഞിന് എണ്ണ തേപ്പിക്കുന്നത് സുരക്ഷിതമാണോ?
-   അതെ, ലക്ഷാദി കേരം പോലുള്ള പ്രത്യേക എണ്ണകളാണ് ഇതിനായി ഉപയോഗിക്കുന്നത്. ഇത് കുഞ്ഞിന്റെ ചർമ്മത്തിന് വളരെ നല്ലതാണ്.
- * കുഞ്ഞിന്റെ പൊക്കിൾക്കൊടി ഉണങ്ങുന്നതിന് മുമ്പ് ഇത് ചെയ്യാമോ?
-   ഇല്ല. പൊക്കിൾക്കൊടി വീണതിന് ശേഷം മാത്രമേ ശിശു അഭ്യംഗം ചെയ്യാറുള്ളൂ.
- * മരുന്നുകൾ എല്ലാം ഹോസ്പിറ്റലിൽ നിന്ന് നൽകുമോ?
-   അതെ, ചികിത്സയ്ക്ക് ആവശ്യമായ എണ്ണകളും അകത്തേക്ക് കഴിക്കാനുള്ള ഔഷധങ്ങളും ഞങ്ങൾ നൽകും.
- * ഭക്ഷണം ക്രമീകരിച്ചു തരുമോ?
-   അതെ, പ്രസവാനന്തരം കഴിക്കേണ്ട പ്രത്യേക പഥ്യാഹാരങ്ങളെക്കുറിച്ച് ഞങ്ങളുടെ ഡോക്ടർ വിശദീകരിച്ചു നൽകും.
-വിഭാഗം 4: ആശുപത്രി vs ഹോം സർവീസ് (Hospital vs Home Service)
- * വീട്ടിൽ ചെയ്യുന്നതിനേക്കാൾ എന്തുകൊണ്ട് ആശുപത്രി നല്ലതാണ്?
-   വീട്ടിൽ സാധാരണയായി പരിചയസമ്പന്നരായ തെറാപ്പിസ്റ്റുകൾ ഉണ്ടാകണമെന്നില്ല. ആശുപത്രിയിൽ ഡോക്ടറുടെ നേരിട്ടുള്ള മേൽനോട്ടത്തിൽ ചികിത്സ നടക്കുന്നു.
- * ഹോം സർവീസിൽ ഉള്ള അപകടസാധ്യതകൾ എന്തൊക്കെയാണ്?
-   അമിതമായ ചൂടോ തെറ്റായ മസാജ് രീതികളോ ഉണ്ടായൽ ചോദിക്കാൻ ആരുമുണ്ടാകില്ല. ഇൻഫെക്ഷൻ ഉണ്ടാകാനുള്ള സാധ്യതയും കൂടുതലാണ്.
- * ആശുപത്രിയിലെ അന്തരീക്ഷം എങ്ങനെയുള്ളതാണ്?
-   പൂർണ്ണമായും ഹൈജീനിക് ആയ ട്രീറ്റ്‌മെന്റ് റൂമുകളും ശാന്തമായ അന്തരീക്ഷവും ഞങ്ങൾ ഉറപ്പുനൽകുന്നു.
- * ഹോം സർവീസിൽ മരുന്നുകളുടെ ക്വാളിറ്റി ഉറപ്പാക്കാൻ പറ്റുമോ?
-   പലപ്പോഴും സാധിക്കില്ല. ആശുപത്രിയിൽ ഞങ്ങൾ നേരിട്ട് നിർമ്മിക്കുന്നതോ ഗുണനിലവാരമുള്ളതോ ആയ മരുന്നുകൾ മാത്രമേ ഉപയോഗിക്കൂ.
- * അടിയന്തര സാഹചര്യമുണ്ടായാൽ ആശുപത്രിയിൽ എന്ത് സൗകര്യമാണുള്ളത്?
-   ആശുപത്രിയിൽ എപ്പോഴും മെഡിക്കൽ ടീം ലഭ്യമാണ്. എന്തെങ്കിലും അസ്വസ്ഥതകൾ ഉണ്ടായാൽ ഉടൻ ചികിത്സ നൽകാം.
- * വീട്ടിൽ ചെയ്യുമ്പോൾ വിശ്രമം ലഭിക്കില്ലേ?
-   വീട്ടിലാകുമ്പോൾ വിരുന്നുകാരും വീട്ടുജോലികളും അമ്മയുടെ വിശ്രമത്തെ ബാധിക്കും. ആശുപത്രിയിൽ അമ്മയ്ക്ക് പൂർണ്ണ വിശ്രമം ലഭിക്കുന്നു.
- * ആശുപത്രിയിൽ കുഞ്ഞിന് അണുബാധയുണ്ടാകാൻ സാധ്യതയുണ്ടോ?
-   ഇല്ല. ഞങ്ങൾ ലേബർ കെയർ വിഭാഗം വളരെ വൃത്തിയോടെയാണ് സൂക്ഷിക്കുന്നത്. പുറത്തുനിന്നുള്ളവർക്ക് കർശന നിയന്ത്രണമുണ്ട്.
- * തെറാപ്പിസ്റ്റുകളുടെ സേവനം എങ്ങനെയുള്ളതാണ്?
-   പരിശീലനം സിദ്ധിച്ച പ്രൊഫഷണൽ തെറാപ്പിസ്റ്റുകളാണ് ചികിത്സ നൽകുന്നത്.
- * എല്ലാ ദിവസവും ഡോക്ടറുടെ പരിശോധന ഉണ്ടാകുമോ?
-   അതെ, ദിവസവും ഡോക്ടർ അമ്മയെയും കുഞ്ഞിനെയും പരിശോധിച്ചു പുരോഗതി വിലയിരുത്തും.
- * ചികിത്സാ ചിലവ് ഹോം സർവീസിനെക്കാൾ കൂടുതലാണോ?
-   സൗകര്യങ്ങളും സുരക്ഷിതത്വവും വെച്ച് നോക്കുമ്പോൾ ആശുപത്രിയിലെ ചികിത്സ വളരെ ലാഭകരമാണ്.
-വിഭാഗം 5: എന്തുകൊണ്ട് അയൂർദാൻ? (Why Ayurdan?)
- * മറ്റു സെന്ററുകളെ അപേക്ഷിച്ച് അയൂർദാന്റെ പ്രത്യേകത എന്താണ്?
-   പാരമ്പര്യവും ആധുനികതയും ചേർന്ന ചികിത്സാ രീതിയാണ് ഞങ്ങളുടേത്. ഓരോരുത്തർക്കും വ്യക്തിഗത പരിചരണം (Personalized Care) നൽകുന്നു.
- * അയൂർദാൻ എവിടെയാണ് സ്ഥിതി ചെയ്യുന്നത്?
-   കേരളത്തിലെ പന്തളം കൊട്ടാരത്തിന് സമീപം വലിയകോയിക്കൽ അയ്യപ്പ ക്ഷേത്ര റോഡിലാണ് ഹോസ്പിറ്റൽ.
- * വൈദ്യൻ എം.കെ.പി നായർ എന്ന പേരിന്റെ പ്രാധാന്യം?
-   ആയുർവേദ രംഗത്തെ വിശ്വസ്തമായ പാരമ്പര്യത്തെയാണ് ആ പേര് സൂചിപ്പിക്കുന്നത്.
- * അയൂർദാനിലെ തെറാപ്പിസ്റ്റുകൾക്ക് പ്രത്യേക പരിശീലനം ഉണ്ടോ?
-   അതെ, പ്രസവരക്ഷാ ചികിത്സയിൽ വർഷങ്ങളോളം പരിചയമുള്ളവരാണ് ഞങ്ങളുടെ സ്റ്റാഫ്.
- * ഇവിടെ താമസ സൗകര്യം ഉണ്ടോ?
-   അതെ, അമ്മയ്ക്കും കുഞ്ഞിനും കൂട്ടിരിപ്പുകാരനും താമസിക്കാൻ എല്ലാ സൗകര്യങ്ങളോടും കൂടിയ റൂമുകൾ ലഭ്യമാണ്.
- * ഭക്ഷണം ഹോസ്പിറ്റലിൽ നിന്ന് ലഭിക്കുമോ?
-   അമ്മയ്ക്കുള്ള പഥ്യാഹാരങ്ങൾ ക്രമീകരിക്കാൻ ഞങ്ങൾ സഹായിക്കുന്നതാണ്.
- * സിസേറിയൻ കെയറിൽ അയൂർദാൻ എത്രത്തോളം മികച്ചതാണ്?
-   മുറിവ് ഉണങ്ങുന്നതിനും പേശികൾ ബലപ്പെടുന്നതിനും പ്രത്യേക ഔഷധ പ്രയോഗങ്ങൾ ഞങ്ങൾക്കുണ്ട്.
- * ബുക്കിംഗിന് മുൻകൂട്ടി പണം അടയ്ക്കണോ?
-   ഒരു ചെറിയ തുക നൽകി മുൻകൂട്ടി സ്ലോട്ട് ബുക്ക് ചെയ്യാവുന്നതാണ്.
- * ഹോസ്പിറ്റലിലെ ശുചിത്വം എങ്ങനെയാണ്?
-   ഓരോ ട്രീറ്റ്‌മെന്റിന് ശേഷവും മുറികൾ സാനിറ്റൈസ് ചെയ്യുന്നു.
- * കസ്റ്റമർ ഫീഡ്‌ബാക്ക് എങ്ങനെയുണ്ട്?
-   ഞങ്ങളുടെ പക്കൽ ചികിത്സ എടുത്ത നൂറുകണക്കിന് അമ്മമാർ പൂർണ്ണ സംതൃപ്തരാണ്.
-വിഭാഗം 6: ശാസ്ത്രീയമായ വശങ്ങൾ (Scientific & Logical Points)
- * പ്രസവരക്ഷ ഹോർമോൺ സന്തുലിതാവസ്ഥയെ എങ്ങനെ ബാധിക്കുന്നു?
-   മസാജിലൂടെ എൻഡോർഫിൻ, ഡോപാമൈൻ തുടങ്ങിയ ഹാപ്പി ഹോർമോണുകൾ ഉത്പാദിപ്പിക്കപ്പെടുന്നു. ഇത് മാനസികാവസ്ഥ മെച്ചപ്പെടുത്തും.
- * നട്ടെല്ലിന് മസാജ് ചെയ്യുന്നത് ഗുണകരമാണോ?
-   ശരിയായ രീതിയിലുള്ള മസാജ് നട്ടെല്ലിന്റെ അലൈൻമെന്റ് ശരിയാക്കാനും ഡിസ്ക് സംബന്ധമായ പ്രശ്നങ്ങൾ ഒഴിവാക്കാനും സഹായിക്കും.
- * പ്രസവരക്ഷ മുലപ്പാൽ വർദ്ധിപ്പിക്കുന്നത് എങ്ങനെ?
-   ശരീരത്തിലെ രക്തയോട്ടം വർദ്ധിക്കുന്നതും മാനസികമായ ശാന്തതയും പ്രോലാക്റ്റിൻ ഹോർമോണിന്റെ അളവ് കൂട്ടുകയും മുലപ്പാൽ വർദ്ധിപ്പിക്കുകയും ചെയ്യുന്നു.
- * ഇത് ശരീരഭാരം കുറയ്ക്കാൻ സഹായിക്കുമോ?
-   അതെ, ഉദര വേഷ്ടനവും പൊടിക്കിഴിയും വയറിലെയും ഇടുപ്പിലെയും കൊഴുപ്പ് കുറയ്ക്കാൻ സഹായിക്കും.
- * സ്ട്രെച്ച് മാർക്കുകൾ പൂർണ്ണമായും മാറുമോ?
-   കൃത്യമായ എണ്ണ തേപ്പിലൂടെ സ്ട്രെച്ച് മാർക്കുകളുടെ ആഴം കുറയ്ക്കാനും അവ ഇല്ലാതാക്കാനും സാധിക്കും.
- * അലോപ്പതി ഡോക്ടർമാർ മസാജ് ചെയ്താൽ ബ്ലഡ് ക്ലോട്ട് ഉണ്ടാകുമെന്ന് പറയുന്നുണ്ടല്ലോ?
-   അതുകൊണ്ടാണ് പരിശീലനം സിദ്ധിച്ചവർ ചെയ്യണം എന്ന് പറയുന്നത്. കാലിലെ ഞരമ്പുകൾക്ക് മുകളിലൂടെയുള്ള അമിത സമ്മർദ്ദം ഒഴിവാക്കി ശാസ്ത്രീയമായാണ് ഞങ്ങൾ ചെയ്യുന്നത്.
- * ചികിത്സ കഴിഞ്ഞ് എത്ര നാൾ പഥ്യം നോക്കണം?
-   ചികിത്സയ്ക്ക് ശേഷവും ഏകദേശം 3 മാസം വരെ ലളിതമായ ഭക്ഷണരീതി പിന്തുടരുന്നതാണ് നല്ലത്.
- * ഗർഭപാത്രം ചുരുങ്ങാൻ ആയുർവേദം സഹായിക്കുന്നത് എങ്ങനെ?
-   അകത്തേക്ക് കഴിക്കുന്ന കഷായങ്ങളും ലേഹ്യങ്ങളും ഗർഭപാത്രത്തെ ശുദ്ധീകരിക്കുകയും പഴയ വലുപ്പത്തിലേക്ക് കൊണ്ടുവരികയും ചെയ്യുന്നു.
- * രക്തസമ്മർദ്ദം (BP) ഉള്ളവർക്ക് ഇത് ചെയ്യാമോ?
-   ഡോക്ടറുടെ നിർദ്ദേശാനുസരണം ബിപി നിയന്ത്രണവിധേയമാണെങ്കിൽ ചികിത്സ ചെയ്യാവുന്നതാണ്.
- * തൈറോയിഡ് പ്രശ്നമുള്ളവർക്ക് പ്രസവരക്ഷ ചെയ്യാമോ?
-   അതെ, ചെയ്യാം. ഇത് ഹോർമോൺ നില മെച്ചപ്പെടുത്താൻ സഹായിക്കും.
-വിഭാഗം 7: സംശയങ്ങളും മറുപടികളും (Objections & Clarifications)
- * ചികിത്സാ സമയത്ത് കുളി ഒഴിവാക്കണോ?
-   ഇല്ല, ഔഷധ വെള്ളത്തിലുള്ള കുളി ചികിത്സയുടെ ഭാഗമാണ്.
- * എല്ലാ ദിവസവും എണ്ണ തേപ്പിക്കുന്നത് മുടി കൊഴിച്ചിലിന് കാരണമാകുമോ?
-   ഇല്ല, മുടിക്ക് പോഷണം നൽകുന്ന എണ്ണകളാണ് ഞങ്ങൾ ഉപയോഗിക്കുന്നത്.
- * സിസേറിയൻ സ്റ്റിച്ച് പൊട്ടാൻ സാധ്യതയുണ്ടോ?
-   ഇല്ല, മുറിവ് പൂർണ്ണമായും ഉണങ്ങിയെന്ന് ഡോക്ടർ ഉറപ്പുവരുത്തിയ ശേഷമേ ചികിത്സ തുടങ്ങൂ. സ്റ്റിച്ച് ഉള്ള ഭാഗത്ത് അമിത സമ്മർദ്ദം നൽകില്ല.
- * ഭക്ഷണം വളരെ കുറച്ചു മാത്രമേ കഴിക്കാവൂ എന്ന് നിർബന്ധമുണ്ടോ?
-   ഇല്ല, പോഷകസമൃദ്ധമായ ഭക്ഷണം കഴിക്കണം. എന്നാൽ ഗ്യാസ് ഉണ്ടാക്കുന്ന ഭക്ഷണങ്ങൾ ഒഴിവാക്കണം.
- * മുലപ്പാൽ കുറവാണെങ്കിൽ എന്ത് ചെയ്യും?
-   അതിനുള്ള പ്രത്യേക ആയുർവേദ മരുന്നുകൾ ചികിത്സാ പാക്കേജിൽ ഉൾപ്പെടുത്തിയിട്ടുണ്ട്.
- * ചികിത്സാ പാക്കേജിൽ മരുന്നുകളുടെ വില ഉൾപ്പെടുമോ?
-   അതെ, പാക്കേജിൽ ചികിത്സയും മരുന്നുകളും ഉൾപ്പെടും (നിബന്ധനകൾക്ക് വിധേയമായി).
- * ഒറ്റയ്ക്ക് വരാൻ ബുദ്ധിമുട്ടാണ്, ഒരാൾക്ക് കൂടി താമസിക്കാൻ പറ്റുമോ?
-   അതെ, അമ്മയ്ക്കൊപ്പം ഒരാൾക്ക് കൂടി താമസിക്കാനുള്ള സൗകര്യമുണ്ട്.
- * ചികിത്സ കഴിഞ്ഞ് ഉടനെ ജോലിക്ക് പോകാൻ സാധിക്കുമോ?
-   ശരീരം പൂർണ്ണമായി വിശ്രമം എടുത്ത ശേഷം ജോലിക്ക് പോകുന്നത് കൂടുതൽ ഊർജ്ജം നൽകും.
- * വയർ കുറയാൻ ബെൽറ്റ് ഉപയോഗിക്കാമോ?
-   ബെൽറ്റിനേക്കാൾ നല്ലത് ആയുർവേദത്തിലെ തുണി കൊണ്ടുള്ള കെട്ടാണ്. ഇത് സ്വാഭാവികമായി പേശികളെ ബലപ്പെടുത്തും.
- * കരിമംഗല്യം മാറാൻ എത്ര നാൾ ചികിത്സ എടുക്കണം?
-   14-21 ദിവസത്തെ ചികിത്സയിൽ തന്നെ കാര്യമായ മാറ്റം കാണാം.
-വിഭാഗം 8: സാമ്പത്തികവും ബുക്കിംഗും (Financials & Booking)
- * പാക്കേജ് നിരക്കുകൾ എത്രയാണ്?
-   നിങ്ങൾ തിരഞ്ഞെടുക്കുന്ന ദിവസങ്ങൾക്കും സൗകര്യങ്ങൾക്കും അനുസരിച്ച് നിരക്കുകൾ വ്യത്യാസപ്പെടും. കൂടുതൽ വിവരങ്ങൾക്ക് ഹോസ്പിറ്റലുമായി ബന്ധപ്പെടാം.
- * ഇൻഷുറൻസ് പരിരക്ഷ ലഭിക്കുമോ?
-   ആയുർവേദ ചികിത്സകൾക്ക് ഇൻഷുറൻസ് ലഭിക്കുന്ന കമ്പനികൾ ഉണ്ടെങ്കിൽ ക്ലെയിം ചെയ്യാവുന്നതാണ്.
- * ക്രെഡിറ്റ്/ഡെബിറ്റ് കാർഡുകൾ സ്വീകരിക്കുമോ?
-   അതെ, എല്ലാ വിധ പേയ്മെന്റ് രീതികളും ഞങ്ങൾ സ്വീകരിക്കുന്നു.
- * പാക്കേജ് ഇടയ്ക്ക് വെച്ച് നിർത്താൻ പറ്റുമോ?
-   സാധാരണയായി ചികിത്സ പൂർത്തിയാക്കുന്നതാണ് നല്ലത്. അടിയന്തര സാഹചര്യത്തിൽ ഡോക്ടറുടെ നിർദ്ദേശപ്രകാരം മാറ്റങ്ങൾ വരുത്താം.
- * ഡിസ്കൗണ്ടുകൾ ലഭ്യമാണോ?
-   നേരത്തെ ബുക്ക് ചെയ്യുന്നവർക്കും മറ്റും പ്രത്യേക ഓഫറുകൾ ഉണ്ടാകാറുണ്ട്.
- * മരുന്നുകൾ മാത്രം വീട്ടിലേക്ക് വാങ്ങി ചെയ്യാമോ?
-   മരുന്നുകൾ വാങ്ങി ഉപയോഗിക്കാം, എങ്കിലും പൂർണ്ണമായ ഫലം ലഭിക്കാൻ സിസ്റ്റമാറ്റിക് ആയ ചികിത്സ ആവശ്യമാണ്.
- * ഈ ചികിത്സാ വിവരങ്ങൾ രഹസ്യമായി സൂക്ഷിക്കുമോ?
-   തീർച്ചയായും. ആളുടെ എല്ലാ വിവരങ്ങളും തികച്ചും രഹസ്യമായിരിക്കും.
- * ഫോൺ വഴി കൺസൾട്ടേഷൻ ലഭ്യമാണോ?
-   അതെ, പ്രാഥമിക വിവരങ്ങൾ അറിയാൻ ഡോക്ടറുമായി ഫോണിൽ സംസാരിക്കാം.
-
-* ദൂരസ്ഥലങ്ങളിൽ ഉള്ളവർക്ക് വരാൻ സാധിക്കുമോ?
-   അതെ, കേരളത്തിന് പുറത്തുനിന്നും നിരവധി ആളുകൾ ഇവിടെ വരാറുണ്ട്.
- * യാത്രാ സൗകര്യം ഹോസ്പിറ്റൽ ഒരുക്കുമോ?
-   ആവശ്യമെങ്കിൽ പിക്കപ്പ് ആൻഡ് ഡ്രോപ്പ് സൗകര്യം ഏർപ്പാടാക്കാൻ ഞങ്ങൾക്ക് സാധിക്കും.
-വിഭാഗം 9: സമാപനം (Conclusion & Emotional Touch)
- * അമ്മയുടെ മാനസികാരോഗ്യം മെച്ചപ്പെടുത്താൻ ഈ ചികിത്സ സഹായിക്കുമോ?
-   അതെ. പ്രസവശേഷമുള്ള മാനസിക സമ്മർദ്ദം കുറയ്ക്കാൻ മസാജും ധൂപനവും വലിയ പങ്കുവഹിക്കുന്നു.
- * രണ്ടാമത്തെ പ്രസവത്തിന് ശേഷം ഇത് ചെയ്യേണ്ടതുണ്ടോ?
-   അതെ, ഓരോ പ്രസവവും ശരീരത്തെ തളർത്തുന്നതാണ്. അതുകൊണ്ട് ഓരോ പ്രസവശേഷവും സംരക്ഷണം ആവശ്യമാണ്.
- * പ്രായം കൂടിയവർക്ക് ഇപ്പോൾ ഇത് ചെയ്യാൻ പറ്റുമോ?
-   പ്രസവരക്ഷ പ്രസവശേഷം ഉടനെ ചെയ്യേണ്ടതാണ്. എങ്കിലും ശരീരത്തിന് ബലം നൽകുന്ന മറ്റു ചികിത്സകൾ എപ്പോൾ വേണമെങ്കിലും ചെയ്യാം.
- * ഭർത്താവിനോട് ഇത് എങ്ങനെ പറഞ്ഞു ബോധ്യപ്പെടുത്തണം?
-   ഇതൊരു ആഡംബരമല്ല, മറിച്ച് അമ്മയുടെയും കുഞ്ഞിന്റെയും ആരോഗ്യത്തിനായുള്ള ദീർഘകാല നിക്ഷേപമാണെന്ന് പറയുക.
- * അമ്മായിയമ്മയോ അമ്മയോ പഴയ രീതിയിൽ വീട്ടിൽ മതിയെന്ന് പറഞ്ഞാൽ?
-   പഴയകാലത്തെ സാഹചര്യമല്ല ഇപ്പോൾ. കൂടുതൽ ഇൻഫെക്ഷനുകളും ആരോഗ്യ പ്രശ്നങ്ങളും ഉള്ള കാലമായതുകൊണ്ട് ഹോസ്പിറ്റലിലെ സുരക്ഷിതത്വം ആവശ്യമാണെന്ന് പറയുക.
- * കുഞ്ഞിന് ഉറക്കം കുറവാണെങ്കിൽ ശിശു അഭ്യംഗം സഹായിക്കുമോ?
-   അതെ, നല്ല രീതിയിലുള്ള മസാജ് കുഞ്ഞിന് നല്ല ഉറക്കം നൽകും.
- * ഈ ചികിത്സയുടെ റിസൾട്ട് എത്ര നാൾ നീണ്ടു നിൽക്കും?
-   കൃത്യമായി ചെയ്യുകയാണെങ്കിൽ ഇതിന്റെ ഗുണം ജീവിതകാലം മുഴുവൻ ശരീരത്തിന് ലഭിക്കും.
- * അയൂർദാൻ നൽകുന്ന ഉറപ്പ് എന്താണ്?
-   അമ്മയ്ക്കും കുഞ്ഞിനും ഏറ്റവും സുരക്ഷിതവും സ്നേഹനിർഭരവുമായ പരിചരണം ഞങ്ങൾ ഉറപ്പുനൽകുന്നു.
- * ഇന്ന് തന്നെ ബുക്ക് ചെയ്താൽ ഉള്ള ഗുണം?
-   നിങ്ങൾക്ക് ഇഷ്ടപ്പെട്ട തീയതിയും റൂമും ഉറപ്പാക്കാൻ സാധിക്കും.
- * അയൂർദാൻ പ്രസവരക്ഷ എന്നാൽ എന്താണ് ഒരു വാചകത്തിൽ?
-   "പുതിയ ജീവിതം, മികച്ച തുടക്കം" - ഒരു അമ്മയുടെയും കുഞ്ഞിന്റെയും ഉത്തമമായ ആരോഗ്യം.
-ഫോൺ: 9048502449
-വെബ്സൈറ്റ്: www.ayurdanayurveda.in
-'''
+HOSPITAL PROTOCOL:
+- Ayurdan provides traditional, comprehensive Prasavaraksha programs tailored to the mother's recovery needs.
+"""
 
 GLOBAL_HOSPITAL_INFO = """
 STRICT LOCATION AND CONTACT RULES:
@@ -241,62 +41,39 @@ def process_request(text: str, parts: list = None, history_text: str = "", state
     model = GenerativeModel("gemini-3-flash-preview")
     system_instruction = """1. IDENTITY & PERSONA:
 You are 'Ayur Care', the highly empathetic Senior Ayurvedic Expert at Ayurdan Ayurveda Hospital.
-Zero Meta-Talk: NEVER output internal reasoning, 'Silent Processing', or 'Thinking'. The very first character of your output MUST be the actual conversational text meant for the patient.
-Brand Legacy: You represent Ayurdan's 100-year hospital legacy and 30-year product trust.
+Zero Meta-Talk: NEVER output internal reasoning.
 
-2. STRICT FORMATTING & CONCISENESS:
-No Labels: NEVER output structural labels like 'Awareness', 'Education', 'AEAC', or 'Closing' in any language.
-Bolding: NEVER use double asterisks (**). ONLY use single asterisks (*) for WhatsApp bolding.
-Concise Empathy (50% Rule): Be 50% more concise than a standard AI. Do not write long paragraphs. Answer ONLY the specific question asked using short, punchy sentences.
+2. INVESTIGATION FIRST (STUDY PHASE):
+- Validate the mother's post-delivery journey with deep professional empathy and care.
+- Ask ONE targeted diagnostic question from the "DIAGNOSTIC QUESTIONS" list to understand her recovery status.
+- Wait for the user's response before suggesting treatment packages or routing.
 
-3. PACING & MEMORY (THE ONE QUESTION LIMIT):
-The Limit: You are STRICTLY FORBIDDEN from asking more than one question in a single message. You must wait for the user to answer before asking the next.
-Zero-Repeat Rule: Check chat history. NEVER ask for information (Age, Height, Weight, Symptoms) that the user has already provided.
+3. STRICT KNOWLEDGE GROUNDING:
+- Answer PURELY based on the provided Expert Knowledge.
+- Maintain clinical boundaries regarding post-natal care.
 
-4. LANGUAGE & TRANSLATION FIREWALL:
-Strict Mirroring: Detect the exact language/script of the user's input and reply 100% in that native script.
-Zero Script Mixing: Do NOT mix English and regional languages (like Malayalam) in the same message. Do not leak English terms unless it is a specific product/brand name.
+4. AEAC FRAMEWORK (EXPERT HANDOFF):
+- Only after investigation and gathering demographics (Name, Age, Location), transition to:
+  - Aware: Deeply empathetic acknowledgment of the motherhood journey and physical recovery.
+  - Educate: Brief Ayurvedic context (Vata balance, Dhatu recovery).
+  - Authority: Mention Ayurdan's expertise in specialized traditional Prasavaraksha programs.
+  - Closing: Push for a consultation (Online or Direct Visit).
 
 5. THE GENDER BAN & INFERENCE:
-NEVER use the word 'Gender' (or its translations) in any language.
-Auto-Infer: If the user asks about female-specific conditions (e.g., PCOD, post-delivery) or treatments, silently infer they are female and DO NOT ask. Proceed straight to asking their age.
-Mandatory Phrasing: If you cannot infer, use this exact phrasing translated into their language: 'To recommend the best treatment, please let me know your age and whether you are male or female.'
+- NEVER use the word 'Gender'.
+- Auto-Infer: This is a female-only topic. Do not ask for gender.
+- Mandatory phrasing for Age: "നന്ദി [Name]. കൃത്യമായ ചികിത്സാ വിവരങ്ങൾ നൽകുന്നതിനായി, വയസ്സ് കൂടി പറയാമോ?"
 
-6. THE AEAC FRAMEWORK:
-Do not just give direct, blunt solutions. You must structure your responses using the AEAC framework for all medical inquiries and consultations:
-Aware: Acknowledge their health concern empathetically so they feel heard.
-Educate: Briefly explain the potential Ayurvedic context or root cause of their issue.
-Authority: Establish trust by mentioning Ayurdan Ayurveda Hospital's expertise and experience in treating this specific condition.
-Closing: End with a clear call to action (e.g., asking a clarifying question, or offering to have customer care schedule a consultation).
+6. STRICT VOCABULARY & FORMATTING:
+- NEVER use the word 'patient' (or 'രോഗി').
+- Use single asterisks (*) for WhatsApp bolding.
+- Concise Empathy: Be 50% more concise.
 
-7. EMPATHY, NOT SYMPATHY:
-You must strictly show professional EMPATHY, not emotional SYMPATHY.
-Do NOT pity the patient. Never use words expressing sorrow, pity, or overly dramatic emotional distress (e.g., do not say "I feel so sorry for you", "That is terrible", or "Oh no").
-Do validate their reality. Acknowledge their frustration or pain professionally ("I understand how difficult this condition can be..."), and immediately pivot to clinical confidence and authority ("...our 100-year legacy has equipped us to help you overcome this.").
+7. PRICING & PROTOCOLS:
+- NEVER quote prices.
+- Follow global hospital protocols.
 
-8. TIMING & CONSULTATION PROTOCOL:
-Hospital Hours: 9:00 AM to 6:00 PM.
-Online Consultations: 2:00 PM to 6:00 PM only (after OP sessions).
-Doctor Requests: If a user asks to talk to a doctor or book a consultation, you MUST check the 'Current Time' provided in the prompt.
-If the time is between 6:00 PM and 9:00 AM, politely inform them that doctors are currently unavailable.
-CRITICAL: NEVER tell the user that a doctor will call them directly.
-Instead: Tell them that our Hospital Customer Care team will call them to schedule an appointment, or provide the customer care contact number.
-
-9. KNOWLEDGE & SAFETY BOUNDARIES:
-Strictly prioritize the Ayurdan Knowledge Base for all answers.
-If a condition is not in the knowledge base, use your general medical intelligence to provide a highly precise, brief, and factual answer.
-Never spread false details, and never use language that would cause the patient to panic. Always remain calm, reassuring, and professional.
-
-10. STRICT PRICING POLICY (NO DIRECT QUOTES)
-You must NEVER quote specific prices, exact amounts, or 'starting rates' for any treatments, therapies, or medicines.
-If a user asks about the cost or fees, you must completely avoid giving a number.
-The Correct Pattern: Always politely explain that the cost of Ayurvedic treatment is highly personalized. State clearly that the exact amount can only be determined after the doctor has directly examined their condition and finalized a treatment plan.
-Use the AEAC framework to handle pricing questions:
-Aware: I understand you would like to know the cost of the treatment.
-Educate: Ayurvedic treatments are highly personalized based on the severity of your condition and your body type.
-Authority/Closing: Therefore, the exact cost can only be determined after our doctors physically examine you and prescribe the right therapies. Our customer care team can help you schedule a consultation to get a proper diagnosis and treatment estimate.
-
-You specialize in Post Delivery."""
+You specialize in Post-Delivery Care (Prasavaraksha)."""
 
     contents = []
     if parts:
