@@ -10,8 +10,8 @@ import tempfile
 import importlib
 import requests
 from flask import Flask, request, jsonify
-from google import genai
-from google.genai import types
+import vertexai
+from vertexai.generative_models import GenerativeModel, Part, SafetySetting
 from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', force=True)
@@ -20,7 +20,6 @@ logging.getLogger().setLevel(logging.INFO)
 load_dotenv()
 
 ZOKO_API_KEY = os.environ.get("ZOKO_API_KEY")
-
 
 import datetime
 from zoneinfo import ZoneInfo
@@ -36,21 +35,17 @@ def get_ist_time_greeting() -> str:
     else:
         return "Good evening"
 
-
 app = Flask(__name__)
-client = genai.Client()
+
+# Initialize Vertex AI
+vertexai.init(
+    project=os.environ.get("GCP_PROJECT_ID"),
+    location=os.environ.get("GCP_LOCATION", "us-central1")
+)
+
+model = GenerativeModel("gemini-3-flash")
 
 DB_PATH = 'ayur_care.db'
-
-# --- Gemini Configuration ---
-flash_config = types.GenerateContentConfig(
-    temperature=0.7
-)
-pro_config = types.GenerateContentConfig(
-    temperature=0.7
-)
-
-
 
 class ProcessedMessagesCache:
     def __init__(self, capacity):
@@ -75,7 +70,6 @@ class ProcessedMessagesCache:
 
 processed_messages = ProcessedMessagesCache(1000)
 
-# --- SQLite Session Management ---
 def db_init():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -90,7 +84,7 @@ def db_init():
     try:
         cursor.execute('ALTER TABLE sessions ADD COLUMN assigned_expert TEXT DEFAULT NULL')
     except sqlite3.OperationalError:
-        pass # Column already exists
+        pass
     conn.commit()
     conn.close()
 
@@ -120,11 +114,8 @@ def update_session(phone_number, history, assigned_expert):
     conn.commit()
     conn.close()
 
-
 def triage_user_intent(message_text):
     text_lower = message_text.lower()
-
-    # Simple keyword routing
     keywords = {
         "expert_backpain": ["back pain", "നടുവേദന", "back", "spine", "disc", "നടു", "കഴുത്തുവേദന"],
         "expert_allergy": ["allergy", "അലർജി", "sneezing", "തുമ്മൽ", "cough", "ചുമ"],
@@ -140,55 +131,24 @@ def triage_user_intent(message_text):
         "expert_weight_loss": ["weight loss", "ഭാരം കുറയ്ക്കാൻ", "മെലിയാൻ"],
         "expert_anorectal": ["piles", "പൈൽസ്", "fistula", "fissure", "വയർ", "മോഷൻ"]
     }
-
     for expert, words in keywords.items():
         for word in words:
             if word in text_lower:
                 return expert
-    return "expert_rejuvenation" # Default (verified agent)
+    return "expert_rejuvenation"
 
-
-def call_gemini_with_retry(contents, client, system_prompt=None):
-    raw_text = ""
+def call_gemini_with_retry(contents, system_prompt=None):
     try:
-        config = flash_config
         if system_prompt:
-             config = types.GenerateContentConfig(
-                system_instruction=system_prompt
-            )
-
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=contents,
-            config=config
-        )
-        raw_text = response.text
-    except Exception as e:
-        err_str = str(e).lower()
-        if "429" in err_str or "quota" in err_str or "503" in err_str or "unavailable" in err_str:
-            print("FLASH OVERLOAD/QUOTA EXCEEDED (429/503). Falling back to Pro...")
-            try:
-                p_config = pro_config
-                if system_prompt:
-                     p_config = types.GenerateContentConfig(
-                        system_instruction=system_prompt
-                    )
-                response = client.models.generate_content(
-                    model="gemini-2.5-pro",
-                    contents=contents,
-                    config=p_config
-                )
-                raw_text = response.text
-            except Exception as pro_e:
-                print(f"CRITICAL SDK ERROR (Pro Fallback Failed): {str(pro_e)}")
-                return "I am just double-checking your details with our senior experts. Give me just a moment, and I will get right back to you!"
+            dynamic_model = GenerativeModel("gemini-3-flash", system_instruction=system_prompt)
         else:
-            print(f"CRITICAL SDK ERROR: {str(e)}")
-            logging.error(f"Gemini Error: {e}")
-            return "I am just double-checking your details with our senior experts. Give me just a moment, and I will get right back to you!"
+            dynamic_model = model
 
-    return raw_text.strip()
-
+        response = dynamic_model.generate_content(contents)
+        return response.text.strip()
+    except Exception as e:
+        logging.error(f"Vertex AI Error: {e}")
+        return "I am just double-checking your details with our senior experts. Give me just a moment, and I will get right back to you!"
 
 def send_whatsapp_message(phone, msg):
     from zoko_client import send_zoko_message
@@ -220,30 +180,22 @@ def process_media(file_url, msg_type, system_prompt, history_text, expert_id, te
 
         local_filename = _download_media(file_url, suffix)
 
-        myfile = client.files.upload(file=local_filename, config={'mime_type': mime})
-        start_time = time.time()
-        while myfile.state == "PROCESSING":
-            if time.time() - start_time > 60:
-                 raise TimeoutError("Gemini file processing timed out.")
-            time.sleep(2)
-            myfile = client.files.get(name=myfile.name)
+        with open(local_filename, "rb") as f:
+            raw_media_bytes = f.read()
 
-        if myfile.state != "ACTIVE":
-            raise ValueError(f"Processing failed. State: {myfile.state}")
+        media_part = Part.from_data(data=raw_media_bytes, mime_type=mime)
 
         contents = []
         if history_text:
-            contents.append(types.Content(role="user", parts=[types.Part.from_text(text=f"Chat History:\n{history_text}")]))
+            contents.append(f"Chat History:\n{history_text}")
 
         part_type = 'audio' if msg_type == 'audio' else 'image' if msg_type == 'image' else 'document'
-
         prompt_t = text_body if text_body else f"Please analyze this {part_type}."
 
-        media_part = types.Part.from_uri(file_uri=myfile.uri, mime_type=mime)
-        text_part = types.Part.from_text(text=prompt_t)
-        contents.append(types.Content(role="user", parts=[media_part, text_part]))
+        contents.append(media_part)
+        contents.append(prompt_t)
 
-        return call_gemini_with_retry(contents, client, system_prompt)
+        return call_gemini_with_retry(contents, system_prompt)
 
     except Exception as e:
         logging.error(f"Media Process Error: {e}", exc_info=True)
@@ -254,7 +206,6 @@ def process_media(file_url, msg_type, system_prompt, history_text, expert_id, te
                 os.remove(local_filename)
             except Exception: pass
 
-
 @app.route('/', methods=['GET', 'HEAD'])
 def root():
     return jsonify({"status": "Ayur Care Awake"})
@@ -264,25 +215,18 @@ def webhook():
     payload = request.json
     if not payload:
         return "OK", 200
-
     msg_id = payload.get('id')
     if msg_id and processed_messages.contains(msg_id):
         logging.info(f"Duplicate message ignored: {msg_id}")
         return "OK", 200
-
     if msg_id:
         processed_messages.add(msg_id)
-
     thread = threading.Thread(target=handle_message, args=(payload,))
     thread.start()
-
     return "OK", 200
 
-
 def handle_message(payload):
-
     logging.info(f'INCOMING ZOKO PAYLOAD: {payload}')
-
     phone_number = payload.get('platformSenderId')
     user_message = payload.get('text', "")
     message_type = payload.get('type')
@@ -305,15 +249,11 @@ def handle_message(payload):
 
         history_text = "\n".join([f"{'User' if h['role'] == 'user' else 'AI'}: {h['content']}" for h in history])
 
-
-        # Intercept & Load Expert
         if not expert_id:
             expert_id = triage_user_intent(user_message)
             logging.info(f"Routed user to {expert_id}")
 
-        # Dynamically load the correct agent's prompt
         from system_prompt import SYSTEM_PROMPT as BASE_SYSTEM_PROMPT
-
         try:
             expert_module = importlib.import_module(f"agents.{expert_id}")
             expert_knowledge = getattr(expert_module, "EXPERT_KNOWLEDGE", "")
@@ -324,7 +264,6 @@ def handle_message(payload):
             hospital_info = ""
 
         current_system_prompt = f"{BASE_SYSTEM_PROMPT}\n\n*SPECIFIC EXPERT KNOWLEDGE*\n{expert_knowledge}\n\n*HOSPITAL INFO*\n{hospital_info}"
-
         fresh_greeting = get_ist_time_greeting()
         current_system_prompt = current_system_prompt.replace("{DYNAMIC_GREETING}", fresh_greeting)
 
@@ -337,25 +276,19 @@ def handle_message(payload):
         elif user_message:
             contents = []
             if history_text:
-                contents.append(types.Content(role="user", parts=[types.Part.from_text(text=f"Chat History:\n{history_text}")]))
-            contents.append(types.Content(role="user", parts=[types.Part.from_text(text=f"Current User Input: {user_message}")]))
-            response_text = call_gemini_with_retry(contents, client, current_system_prompt)
-
+                contents.append(f"Chat History:\n{history_text}")
+            contents.append(f"Current User Input: {user_message}")
+            response_text = call_gemini_with_retry(contents, current_system_prompt)
 
         if user_input_for_history:
              history.append({"role": "user", "content": user_input_for_history})
         if response_text:
              history.append({"role": "model", "content": response_text})
 
-        # Cap memory
         if len(history) > 20:
             history = history[-20:]
 
-        # The Handover / Unlock (Check for completion/goodbye)
         if any(word in response_text.lower() for word in ["goodbye", "നന്ദി", "bye", "take care"]):
-             # We might want to clear expert_id but let's just do it based on some keyword.
-             # Actually, the user requested to set it to None if marked complete.
-             # We will just do a simple check for "goodbye" equivalents in english and malayalam
              if "goodbye" in response_text.lower() or "വിളിക്കാം" in response_text.lower() or "[HANDOVER]" in response_text:
                  expert_id = None
 
@@ -371,7 +304,6 @@ def handle_message(payload):
     import gc
     gc.collect()
     return
-
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))

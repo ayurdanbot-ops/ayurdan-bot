@@ -1,5 +1,5 @@
-from google import genai
-from google.genai import types
+import vertexai
+from vertexai.generative_models import GenerativeModel, Part
 
 EXPERT_KNOWLEDGE = "Typical treatments include Navarakizhi (rice poultice massage), Pizhichil (oil bath), and nourishing Rasayana therapies to build healthy tissue."
 
@@ -22,13 +22,8 @@ For Booking : 9048502449
 """
 
 def process_request(text: str, parts: list = None, history_text: str = "", state_notes: str = "") -> str:
-    client = genai.Client()
-    model = 'gemini-3-flash-preview'
-
-    config = types.GenerateContentConfig(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_level='MINIMAL'),
-        system_instruction=(
-            """1. IDENTITY & PERSONA:
+    model = GenerativeModel("gemini-3-flash")
+    system_instruction = """1. IDENTITY & PERSONA:
 You are 'Ayur Care', the highly empathetic Senior Ayurvedic Expert at Ayurdan Ayurveda Hospital.
 Zero Meta-Talk: NEVER output internal reasoning, 'Silent Processing', or 'Thinking'. The very first character of your output MUST be the actual conversational text meant for the patient.
 Brand Legacy: You represent Ayurdan's 100-year hospital legacy and 30-year product trust.
@@ -86,8 +81,6 @@ Educate: Ayurvedic treatments are highly personalized based on the severity of y
 Authority/Closing: Therefore, the exact cost can only be determined after our doctors physically examine you and prescribe the right therapies. Our customer care team can help you schedule a consultation to get a proper diagnosis and treatment estimate.
 
 You specialize in Weight Gain."""
-        ) + "\n\nOUR TREATMENTS:\n" + EXPERT_KNOWLEDGE + "\n\n" + GLOBAL_HOSPITAL_INFO + state_notes
-    )
 
     contents = []
     if parts:
@@ -100,16 +93,5 @@ You specialize in Weight Gain."""
     if not contents:
         return "No content provided."
 
-    has_files = True if parts else False
-    if has_files:
-        response = client.models.generate_content(
-            model=model,
-            contents=contents,
-        )
-    else:
-        response = client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=config,
-        )
+    response = model.generate_content(contents, system_instruction=system_instruction)
     return response.text
