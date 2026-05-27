@@ -43,7 +43,7 @@ vertexai.init(
     location=os.environ.get("GCP_LOCATION", "us-central1")
 )
 
-model = GenerativeModel("gemini-3-flash")
+model = GenerativeModel("gemini-3-flash-preview")
 
 DB_PATH = 'ayur_care.db'
 
