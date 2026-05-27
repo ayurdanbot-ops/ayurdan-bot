@@ -2,357 +2,23 @@ import vertexai
 from vertexai.generative_models import GenerativeModel, Part
 
 EXPERT_KNOWLEDGE = """
-📞 ടെലി-കോളർ സ്ക്രിപ്റ്റ് – ഡാൻഡ്രഫ് (തലയിലെ പൊടി പ്രശ്നം)
-ആമുഖം (Introduction):
-“നമസ്കാരം, ഞാൻ Ayurdan Ayurveda Hospitalൽ നിന്ന് സംസാരിക്കുന്നു. ഞാൻ ___ ആണ്. നിങ്ങൾക്ക് 2 മിനിറ്റ് സമയം ഉണ്ടോ?”
-പ്രശ്നം തിരിച്ചറിയൽ (Problem Identification):
-“താങ്കൾക്ക് തലയിലെ പൊടി (dandruff), ചൊറിച്ചിൽ, അല്ലെങ്കിൽ മുടി കൊഴിച്ചിൽ പോലുള്ള പ്രശ്നങ്ങൾ ഉണ്ടോ?”
-(ഉണ്ടെങ്കിൽ തുടരണം)
-“എത്ര കാലമായി ഈ പ്രശ്നം അനുഭവപ്പെടുന്നു?”
-“ചൊറിച്ചിൽ കൂടിയുണ്ടോ?”
-“മുടി കൊഴിച്ചിൽ ഉണ്ടോ?”
-“നിങ്ങൾ ഇതിനായി മുമ്പ് എന്തെങ്കിലും ചികിത്സ എടുത്തിട്ടുണ്ടോ?”
-അറിവ് നൽകൽ (Education / Awareness):
-“ഡാൻഡ്രഫ് സാധാരണ പ്രശ്നമാണെങ്കിലും, ശരിയായ ചികിത്സ ലഭിക്കാത്ത പക്ഷം അത് മുടി കൊഴിച്ചിലിനും തലച്ചർമത്തിലെ മറ്റ് പ്രശ്നങ്ങൾക്കും കാരണമാകാം.”
-“ആയുര്‍വേദത്തിൽ ഇത് ‘Darunaka’ എന്ന പേരിൽ അറിയപ്പെടുന്നു, ഇത് പ്രധാനമായും വാത-കഫ ദോഷങ്ങളുടെ അസന്തുലിതാവസ്ഥ മൂലമാണ് ഉണ്ടാകുന്നത്.”
-പരിഹാരം അവതരിപ്പിക്കൽ (Solution Pitch):
-“ഞങ്ങളുടെ Ayurdan Ayurveda Hospitalൽ, പൂർണ്ണമായും പ്രകൃതിദത്തമായ ആയുര്‍വേദ ചികിത്സകളാണ് നൽകുന്നത്.”
-“ഇതിന് പ്രത്യേകമായ oil therapy, herbal medicines, diet & lifestyle guidance എന്നിവയിലൂടെ നമുക്ക് സ്ഥിരമായ പരിഹാരം ലഭിക്കാം.”
-“Side effects ഒന്നും ഇല്ലാത്തതും, root cause address ചെയ്യുന്നതുമാണ് ഞങ്ങളുടെ ചികിത്സ.”
-Call to Action (Appointment Fixing):
-“നിങ്ങൾക്ക് ഒരു consultation book ചെയ്യാമോ?”
-“Doctor consultation available ആണ്. നിങ്ങൾക്ക് hospital visit ചെയ്യാമോ, അല്ലെങ്കിൽ online consultation വേണോ?”
-Closure (Ending):
-“നന്ദി. കൂടുതൽ വിവരങ്ങൾക്ക് ഞങ്ങളെ ബന്ധപ്പെടാം. നിങ്ങളുടെ ആരോഗ്യം ഞങ്ങൾക്ക് പ്രധാനമാണ്.”
-✅ Short Closing Line Options:
-“നിങ്ങളുടെ മുടി ആരോഗ്യം സംരക്ഷിക്കാൻ ഇന്ന് തന്നെ ആരംഭിക്കൂ.”
-“Natural ആയ ചികിത്സയിലൂടെ dandruff പൂര്‍ണമായി നിയന്ത്രിക്കാം.”
-
-മുടി കൊഴിച്ചിൽ
-ആമുഖം (Warm Opening):
-“നമസ്കാരം… Ayurdan Ayurveda Hospitalൽ നിന്ന് ആണ് വിളിക്കുന്നത്. ഞാൻ ___ ആണ് സംസാരിക്കുന്നത്. ഇപ്പോൾ സംസാരിക്കാൻ സുഖമാണോ?”
-ബന്ധം സൃഷ്ടിക്കൽ (Emotional Connection):
-“ഒരു ചെറിയ ചോദ്യം ചോദിക്കട്ടെ…
-ഇപ്പോൾ നിങ്ങൾക്ക് മുടി കൊഴിച്ചിൽ കാരണം അല്പം വിഷമമുണ്ടോ…?”
-(കാത്തിരിക്കുക, patient സംസാരിക്കാൻ സമയം കൊടുക്കുക)
-“മിക്ക ആളുകളും ഇതേ കാര്യം പറഞ്ഞുകൊണ്ടാണ് ഞങ്ങളെ സമീപിക്കുന്നത്…
-മുടി കൊഴിയുമ്പോൾ, അത് ശരീരപ്രശ്നം മാത്രമല്ല, confidence-നെയും ബാധിക്കും… ശരിയാണോ?”
-പ്രശ്നം മനസ്സിലാക്കൽ (Understanding the Pain):
-“എത്ര കാലമായി ഇത് ശ്രദ്ധിക്കുന്നുണ്ട്?”
-“മുടി comb ചെയ്യുമ്പോഴും wash ചെയ്യുമ്പോഴും കൂടുതലായി കൊഴിയുന്നുണ്ടോ?”
-“മുമ്പ് ചികിത്സ എടുത്തിട്ടുണ്ടെങ്കിലും മാറ്റം കുറവാണോ?”
-“ഇത് കൊണ്ട് നിങ്ങൾക്ക് tension അല്ലെങ്കിൽ stress കൂടുന്നുണ്ടോ…?”
-ആശ്വാസവും വിശ്വാസവും (Reassurance):
-“ഞാൻ പറയുന്നത് നിങ്ങളെ ആശ്വസിപ്പിക്കാൻ തന്നെയാണ്…
-ഈ പ്രശ്നത്തിന് ശരിയായ ചികിത്സ എടുത്താൽ മാറ്റം definitely കാണാം.”
-“ആയുര്‍വേദത്തിൽ ഇത് ‘Khalitya’ എന്ന് പറയുന്നു…
-ഇത് ശരീരത്തിനുള്ളിലെ imbalance ആണ് കാരണം… അതുകൊണ്ട് പുറമേ എന്തെങ്കിലും oil മാത്രം ഉപയോഗിച്ചാൽ മതി എന്നല്ല.”
-പരിഹാരം – Care Approach (Solution with Care):
-“ഞങ്ങളുടെ Ayurdan Ayurveda Hospitalൽ,
-ഒരാളുടെ body type, കാരണം എന്നിവ നോക്കി വ്യക്തിഗതമായി treatment നൽകുന്നു.”
-“Medicines മാത്രം അല്ല…
-✔️ oil therapies
-✔️ diet guidance
-✔️ stress management
-ഇവയെല്ലാം combine ചെയ്ത് നമുക്ക് നല്ലൊരു result നേടാം.”
-Call to Action (Soft & Caring):
-“നിങ്ങൾക്ക് താൽപര്യമുണ്ടെങ്കിൽ…
-ഒരു doctor consultation fix ചെയ്യാം…
-നിങ്ങൾക്ക് hospital വരാൻ സുഖമാണോ…
-അല്ലെങ്കിൽ online ആയി consult ചെയ്യാമോ…?”
-Closure (Comforting Ending):
-“നിങ്ങൾ ഇത്രയും ദിവസമായി ഇതിനെ കൊണ്ട് വിഷമിച്ചിരിക്കാം…
-പക്ഷേ ശരിയായ care കിട്ടിയാൽ മാറ്റം വരും.”
-“ഞങ്ങൾ കൂടെ ഉണ്ടാകും…
-നന്ദി 🙏”
-
-മുടി വളർച്ച
-ആമുഖം (Very Gentle Opening):
-“നമസ്കാരം… Ayurdan Ayurveda Hospitalൽ നിന്ന് ആണ് വിളിക്കുന്നത്… ഞാൻ ___ ആണ് സംസാരിക്കുന്നത്…
-ഇപ്പോൾ സംസാരിക്കാൻ ഒരു മിനിറ്റ് സമയം ഉണ്ടോ…?”
-ബന്ധം സൃഷ്ടിക്കൽ (Real Emotional Connect):
-“ഒരു കാര്യം സത്യമായി പറയാമോ…
-മുടി മുൻപത്തെ പോലെ വളരുന്നില്ലെന്ന് തോന്നുമ്പോൾ… അത് ചെറിയ കാര്യമെന്നു തോന്നിച്ചാലും… ഉള്ളിൽ വളരെ വിഷമമുണ്ടാക്കുന്ന കാര്യമാണല്ലോ…?”
-(അവരെ സംസാരിക്കാൻ അനുവദിക്കുക)
-“മുടി കുറയുമ്പോൾ കണ്ണാടിയിൽ നോക്കാൻ പോലും പലർക്കും മടി തോന്നാറുണ്ട്…
-confidence പോലും കുറയുന്നുണ്ടാകും… അത് നിങ്ങൾക്കും feel ചെയ്യുന്നുണ്ടോ…?”
-അവരുടെ വേദന കേൾക്കൽ (Active Listening):
-“എപ്പോഴാണ് നിങ്ങൾക്ക് ഇത് കൂടുതൽ ശ്രദ്ധയിൽ പെട്ടത്…?”
-“മുൻപത്തെ പോലെ length കൂടുന്നില്ലേ…?”
-“മുടി thin ആകുന്നുണ്ടോ… അല്ലെങ്കിൽ വളരുന്നതിന് മുമ്പേ കൊഴിയുന്നുണ്ടോ…?”
-“ഇതിന് വേണ്ടി പലതും try ചെയ്തിട്ടുണ്ടെങ്കിലും…
-തൃപ്തികരമായ മാറ്റം കിട്ടിയില്ലെന്നു തോന്നുന്നുണ്ടോ…?”
-ആശ്വാസം നൽകൽ (Emotional Reassurance):
-“ഞാൻ ഒരു കാര്യം ഉറപ്പായി പറയാം…
-ഇത് നിങ്ങളൊറ്റയ്ക്ക് അനുഭവിക്കുന്ന പ്രശ്നമല്ല…”
-“പലരും ഇതേ പ്രശ്നവുമായി വരുന്നു…
-പക്ഷേ ശരിയായ രീതിയിൽ care കിട്ടിയാൽ മാറ്റം കാണാൻ സാധിക്കും…”
-വിശ്വാസം + അറിവ് (Trust + Gentle Education):
-“മുടി വളരാത്തത് പുറമേ കാണുന്ന പ്രശ്നം മാത്രമല്ല…
-ശരീരത്തിനുള്ളിലെ imbalance ആണ് കാരണം…”
-“ആയുര്‍വേദം അത് വളരെ gently ആയി correct ചെയ്യുന്നു…
-അതുകൊണ്ടാണ് slow ആയാലും natural ആയ result കിട്ടുന്നത്…”
-പരിഹാരം (Caring Solution Approach):
-“ഞങ്ങളുടെ Ayurdan Ayurveda Hospitalൽ,
-ഓരോരുത്തരെയും individual ആയി consider ചെയ്ത് treatment നൽകുന്നു…”
-“Medicines മാത്രം അല്ല…
-✔️ scalp nourish ചെയ്യുന്ന therapies
-✔️ ശരീരത്തിന് പോഷണം നൽകുന്ന മരുന്നുകൾ
-✔️ diet & lifestyle support
-ഇവയെല്ലാം ചേർന്നാണ് മുടി വീണ്ടും healthy ആയി വളരാൻ സഹായിക്കുന്നത്…”
-Hope Building (Very Important):
-“നിങ്ങൾക്ക് ഇപ്പോൾ തോന്നുന്ന പോലെ hopeless situation അല്ല ഇത്…
-ശരിയായ direction കിട്ടിയാൽ… धीरे धीरे മാറ്റം വരും…”
-“ആ മാറ്റം കാണുമ്പോൾ… നിങ്ങൾക്ക് തന്നെ confidence തിരിച്ചു വരും…”
-Call to Action (Soft & Respectful):
-“നിങ്ങൾക്ക് താൽപര്യമുണ്ടെങ്കിൽ…
-ഒരു doctor consultation arrange ചെയ്ത് നോക്കാമോ…?”
-“നിങ്ങൾക്ക് hospital വരാൻ സുഖമാണോ…
-അല്ലെങ്കിൽ വീട്ടിൽ ഇരുന്ന് online ആയി consult ചെയ്യാമോ…?”
-Closure (Heartfelt Ending):
-“നിങ്ങൾ ഇതിനെ കൊണ്ട് വിഷമിച്ചിട്ടുണ്ടെങ്കിൽ…
-അത് ഞങ്ങൾ മനസ്സിലാക്കുന്നു…”
-“നിങ്ങളുടെ മുടി മാത്രം അല്ല…
-നിങ്ങളുടെ confidence തിരിച്ചു കൊണ്ടുവരാൻ ഞങ്ങൾ കൂടെയുണ്ട്…”
-“നന്ദി… 🙏”
-❤️ Deep Emotional Closing Lines:
-“ഇന്ന് നിങ്ങൾ എടുക്കുന്ന ഒരു ചെറിയ തീരുമാനം… നാളെയുടെ ആത്മവിശ്വാസമാകും.”
-“മുടി വീണ്ടും വളരുമ്പോൾ… നിങ്ങളിൽ ഒരു പുതിയ സന്തോഷം കാണാം.”
-“You deserve to feel confident again…”
-
-അലോപേഷ്യ (Alopecia)
-ആമുഖം (Gentle Opening):
-“നമസ്കാരം… Ayurdan Ayurveda Hospitalൽ നിന്ന് ആണ് വിളിക്കുന്നത്… ഞാൻ ___ ആണ് സംസാരിക്കുന്നത്…
-ഇപ്പോൾ സംസാരിക്കാൻ സുഖമാണോ…?”
-ബന്ധം സൃഷ്ടിക്കൽ (Sensitive Emotional Connect):
-“ഒരു കാര്യമാണ് ചോദിക്കേണ്ടത്…
-മുടിയിൽ patch ആയി കൊഴിയുന്നത് കാണുമ്പോൾ… അത് അല്പം ഭയവും വിഷമവും ഉണ്ടാക്കുന്ന കാര്യമാണല്ലോ…?”
-(അവരെ സംസാരിക്കാൻ അനുവദിക്കുക)
-“പലർക്കും ഇത് പെട്ടെന്ന് വന്നപ്പോള്‍… ‘എന്താണ് സംഭവിക്കുന്നത്’ എന്ന് പോലും മനസ്സിലാകാതെ tension ആയിരിക്കും…
-നിങ്ങൾക്കും അങ്ങനെ തോന്നിയിട്ടുണ്ടോ…?”
-പ്രശ്നം മനസ്സിലാക്കൽ (Understanding the Situation):
-“എത്ര കാലമായി ഈ patch hair loss കാണുന്നു?”
-“ഒരു ഭാഗത്തേ മാത്രമോ… അല്ലെങ്കിൽ പല സ്ഥലങ്ങളിലും ഉണ്ടാകുന്നുണ്ടോ?”
-“മുമ്പ് ഏതെങ്കിലും treatment എടുത്തിട്ടുണ്ടോ?”
-“Doctor പറഞ്ഞ diagnosis ‘alopecia’ ആണോ…?”
-“ഇത് കൊണ്ട് പുറത്തേക്ക് പോകാനും, ആളുകളെ കാണാനും കുറച്ച് hesitation ഉണ്ടാകുന്നുണ്ടോ…?”
-ആശ്വാസം (Emotional Reassurance):
-“ഞാൻ ഒരു കാര്യം ഉറപ്പായി പറയാം…
-ഇത് നിങ്ങൾ മാത്രം അനുഭവിക്കുന്ന പ്രശ്നമല്ല…”
-“പല patients ഇതേ അവസ്ഥയിൽ തന്നെയാണ് ഞങ്ങളെ സമീപിക്കുന്നത്…
-ആദ്യത്തിൽ പേടിയുണ്ടാകും… പക്ഷേ ശരിയായ care കിട്ടിയാൽ improvement കാണാം…”
-വിശ്വാസം + അറിവ് (Trust + Simple Education):
-“ആയുര്‍വേദത്തിൽ ഇത് ‘Indralupta’ എന്ന രീതിയിൽ വിവരിക്കുന്നു…”
-“ഇത് scalp-ലുള്ള hair roots inactive ആകുന്നതുകൊണ്ടാണ്…
-അതുകൊണ്ട് പുറമേ ointment മാത്രം ഉപയോഗിച്ചാൽ പോരാ…
-body-യിലെ imbalance correct ചെയ്യേണ്ടതാണ്…”
-പരിഹാരം (Holistic & Hopeful Approach):
-“ഞങ്ങളുടെ Ayurdan Ayurveda Hospitalൽ,
-ഓരോ patient നും individualized treatment ആണ് നൽകുന്നത്…”
-✔️ Hair root activate ചെയ്യാൻ പ്രത്യേക therapies
-✔️ Internal herbal medicines (body balance ചെയ്യാൻ)
-✔️ Diet & lifestyle guidance
-“ഇത് धीरे धीरे scalp revive ചെയ്ത്… വീണ്ടും hair growth തുടങ്ങാൻ സഹായിക്കും…”
-Hope Building (Very Important):
-“ഈ condition കണ്ടപ്പോൾ ‘മുടി വീണ്ടും വരുമോ?’ എന്ന doubt പലർക്കും ഉണ്ടാകും…”
-“പക്ഷേ ശരിയായ സമയത്ത് treatment തുടങ്ങിയാൽ…
-patch areas-ലും regrowth കാണാൻ കഴിയുന്ന കേസുകൾ നമ്മൾ കണ്ടിട്ടുണ്ട്…”
-Call to Action (Soft & Caring):
-“നിങ്ങൾക്ക് താൽപര്യമുണ്ടെങ്കിൽ…
-ഒരു doctor consultation arrange ചെയ്ത് നോക്കാമോ…?”
-“നിങ്ങൾക്ക് hospital വരാൻ സുഖമാണോ…
-അല്ലെങ്കിൽ online consultation വേണോ…?”
-Closure (Heartfelt Ending):
-“ഇത് കൊണ്ട് നിങ്ങൾ mentally upset ആയിട്ടുണ്ടെങ്കിൽ… അത് സ്വാഭാവികമാണ്…”
-“പക്ഷേ നിങ്ങൾ ഒറ്റയാളല്ല…
-നിങ്ങൾക്ക് വീണ്ടും normal feel ചെയ്യാൻ ഞങ്ങൾ കൂടെയുണ്ട്…”
-“നന്ദി… 🙏”
-❤️ Deep Emotional Closing Lines:
-“മുടി മാത്രം അല്ല… ആത്മവിശ്വാസം തിരിച്ചു കൊണ്ടുവരാനാണ് ഞങ്ങളുടെ ശ്രമം.”
-“Hope ഉണ്ടെങ്കിൽ change വരും… ഞങ്ങൾ ആ hope നല്കാം.”
-“You are not alone… we are here with you.”
-
-
-Part 1: Tele-Caller Script (Malayalam)
-ഈ സ്ക്രിപ്റ്റ് കസ്റ്റമറുടെ താല്പര്യം നിലനിർത്താനും വിശ്വാസം ജനിപ്പിക്കാനും സഹായിക്കും.
-
-Greeting (അഭിവാദ്യം):
-"നമസ്കാരം, ഞാൻ ആയുർദാൻ ആയുർവേദിക് ക്ലിനിക്കിൽ നിന്നാണ് വിളിക്കുന്നത്. എന്റെ പേര് [നിങ്ങളുടെ പേര്]. ഒന്ന് രണ്ട് മിനിറ്റ് സംസാരിക്കാൻ സൗകര്യമുണ്ടോ?"
-
-Purpose (ലക്ഷ്യം):
-"നിങ്ങൾ താരൻ സംബന്ധമായ ബുദ്ധിമുട്ടുകൾക്ക് പരിഹാരം തേടിയിരുന്നതായി ശ്രദ്ധയിൽപ്പെട്ടു. അതിനെക്കുറിച്ച് കൂടുതൽ കാര്യങ്ങൾ വ്യക്തമാക്കാനാണ് ഞാൻ വിളിച്ചത്."
-
-Benefits (ഗുണങ്ങൾ):
-"ആയുർദാനിൽ താരന്റെ തീവ്രത (severity) പരിശോധിച്ച് വിദഗ്ദ്ധരായ ഡോക്ടർമാരുടെ നിർദ്ദേശപ്രകാരമാണ് ചികിത്സ നൽകുന്നത്. വെറും ഒരു ദിവസം കൊണ്ട് തുടങ്ങാവുന്ന ഫലപ്രദമായ ട്രീറ്റ്മെന്റുകൾ ഞങ്ങൾക്കുണ്ട്."
-
-Cost & Duration (ചെലവും സമയവും):
-
-"സാധാരണയായി 1500 രൂപ മുതൽ ട്രീറ്റ്മെന്റുകൾ ലഭ്യമാണ്. കൃത്യമായ റേറ്റ് പരിശോധനയ്ക്ക് ശേഷം മാത്രമേ പറയാൻ കഴിയൂ. ഒരു മണിക്കൂർ മുതൽ രണ്ട് മണിക്കൂർ വരെ മാത്രമാണ് ഒരു സെഷന് സമയം വേണ്ടിവരുന്നത്."
-
-Closing/Appointment (അപ്പോയിന്റ്മെന്റ്):
-"നിങ്ങൾക്ക് സൗകര്യപ്രദമായ ഒരു ദിവസം ക്ലിനിക്ക് സന്ദർശിക്കാമോ? വിദഗ്ദ്ധ പരിശോധനയിലൂടെ ഇത് പൂർണ്ണമായും മാറ്റാൻ സാധിക്കും. നാളെയോ മറ്റന്നാളോ ഒരു സമയം ബുക്ക് ചെയ്യട്ടെ?"
-
-2: 50 Questions & ആൻസർസ്
-
-* താരൻ എന്നാൽ എന്താണ്?
-തലയോട്ടിയിലെ ചർമ്മകോശങ്ങൾ അമിതമായി ഉണങ്ങി പൊഴിയുന്ന അവസ്ഥയാണിത്. ഇത് ചൊറിച്ചിലിനും അസ്വസ്ഥതയ്ക്കും കാരണമാകുന്നു.
-
-താരൻ ഒരു രോഗമാണോ?
-താരൻ ഒരു ഗുരുതരമായ രോഗമല്ല, പക്ഷേ അത് തലയോട്ടിയുടെ ആരോഗ്യത്തെ ബാധിക്കുന്ന ഒരു അവസ്ഥയാണ്.
-
-* താരൻ എങ്ങനെ ഉണ്ടാകുന്നു?
-തലയോട്ടിയിലെ അമിതമായ എണ്ണമയം, മലാസെസിയ (Malassezia) എന്ന ഫംഗസിന്റെ വളർച്ച, അല്ലെങ്കിൽ തലയോട്ടി വൃത്തിയായി സൂക്ഷിക്കാത്തത് എന്നിവ മൂലം താരൻ ഉണ്ടാകാം.
-
-* ആയുർദാനിൽ ഡാൻഡ്രഫിന് എന്ത് ട്രീറ്റ്മെന്റ് ആണ് ഉള്ളത്?
-ഓരോ വ്യക്തിയുടെയും താരന്റെ വ്യാപ്തി മനസ്സിലാക്കി എക്സ്പെർട്ട്സ് നിശ്ചയിക്കുന്ന പ്രത്യേക ചികിത്സാ രീതികളാണ് ആയുർദാനിലുള്ളത്.
-
-* എത്ര ദിവസത്തെ ട്രീറ്റ്മെന്റ് ആണ് താരനുവേണ്ടി വരുന്നത്?
-ഒറ്റ ദിവസം കൊണ്ട് ആരംഭിക്കാവുന്ന ട്രീറ്റ്മെന്റുകൾ ലഭ്യമാണ്. താരന്റെ അവസ്ഥയനുസരിച്ച് ഇതിൽ മാറ്റം വരാം.
-
-* ഡാൻഡ്രഫ് ട്രീറ്റ്മെന്റിന്റെ കോസ്റ്റ് എത്രയാണ്?
-സാധാരണ കേസുകളിൽ 1500 രൂപ മുതൽ ട്രീറ്റ്മെന്റ് ആരംഭിക്കുന്നു. ഡോക്ടറുടെ പരിശോധനയ്ക്ക് ശേഷം കൃത്യമായ തുക അറിയാൻ സാധിക്കും.
-
-* താരൻ ചികിത്സയിൽ എന്തെങ്കിലും മെഡിസിൻ ഉള്ളിൽ കഴിക്കേണ്ടതുണ്ടോ?
-ഭൂരിഭാഗം കേസുകളിലും പുറമെ ചെയ്യുന്ന ചികിത്സകൾ മതിയാകും. എന്നാൽ ഇൻഫെക്ഷൻ കൂടുതലാണെങ്കിൽ മാത്രം ഡോക്ടറുടെ നിർദ്ദേശപ്രകാരം മരുന്നുകൾ നൽകും.
-
-* താരൻ ചികിത്സിച്ചു ഭേദമായാൽ വീണ്ടും വരാൻ സാധ്യതയുണ്ടോ?
-ശരിയായ ജീവിതശൈലിയും മുടി സംരക്ഷണവും പിന്തുടരുകയാണെങ്കിൽ താരനെ പൂർണ്ണമായും ഒഴിവാക്കി നിർത്താം.
-
-* ട്രീറ്റ്മെന്റ് ചെയ്യുന്നതിന് എത്ര സമയം വേണ്ടിവരും?
-സാധാരണഗതിയിൽ ഒരു സെഷന് 1 മുതൽ 2 മണിക്കൂർ വരെ സമയം മതിയാകും.
-
-* താരൻ മുഖക്കുരുവിന് കാരണമാകുമോ?
-അതെ, താരൻ മുഖത്തേക്ക് വീഴുന്നത് സുഷിരങ്ങൾ അടയാനും അത് മുഖക്കുരു ഉണ്ടാകാനും കാരണമാകും.
-
-* ഡാൻഡ്രഫ് സോറിയാസിസ് ആയി മാറുമോ?
-ഇല്ല, എന്നാൽ താരനും സോറിയാസിസും തമ്മിൽ ചില സാമ്യങ്ങളുണ്ട്. വിദഗ്ദ്ധ പരിശോധനയിലൂടെ മാത്രമേ ഇത് തിരിച്ചറിയാൻ കഴിയൂ.
-
-* താരൻ മൂലം മുടി കൊഴിച്ചിൽ ഉണ്ടാകുമോ?
-അതെ, താരൻ തലയോട്ടിയിലെ മുടിവേരുകളെ ദുർബലപ്പെടുത്തുകയും മുടി കൊഴിച്ചിലിന് കാരണമാവുകയും ചെയ്യുന്നു.
-
-* താരൻ പകരുന്ന ഒന്നാണോ?
-സാധാരണയായി താരൻ പകരില്ല, പക്ഷേ ഇൻഫെക്ഷൻ ഉള്ളവരുടെ ചീപ്പോ തോർത്തോ ഉപയോഗിക്കുന്നത്
-ഒഴിവാക്കുന്നതാണ് നല്ലത്.
-
-* ഏത് പ്രായക്കാർക്കാണ് താരൻ വരുന്നത്?
-ഏത് പ്രായക്കാർക്കും വരാമെങ്കിലും കൗമാരപ്രായക്കാരിലും യുവാക്കളിലുമാണ് ഇത് കൂടുതൽ കണ്ടുവരുന്നത്.
-
-* വേനൽക്കാലത്ത് താരൻ കൂടുമോ?
-അമിതമായ വിയർപ്പ് മൂലം വേനൽക്കാലത്ത് ചിലരിൽ താരൻ വർദ്ധിക്കാറുണ്ട്.
-
-* മഴക്കാലത്ത് താരൻ ഉണ്ടാകാൻ കാരണമെന്ത്?
-തലയിലെ അമിതമായ ഈർപ്പവും ഈർപ്പമുള്ള അന്തരീക്ഷവും ഫംഗസ് വളർച്ചയ്ക്ക് അനുകൂലമാണ്.
-
-* ഡയറ്റ് താരനെ ബാധിക്കുമോ?
-അതെ, അമിതമായ മധുരം, എണ്ണമയമുള്ള ഭക്ഷണങ്ങൾ എന്നിവ താരൻ വർദ്ധിപ്പിക്കാൻ സാധ്യതയുണ്ട്.
-
-* താരനുള്ളവർ എണ്ണ ഉപയോഗിക്കാമോ?
-താരൻ ഉള്ളപ്പോൾ അമിതമായി എണ്ണ തേക്കുന്നത് ഗുണകരമല്ല, ഇത് അവസ്ഥ വഷളാക്കിയേക്കാം.
-
-* കെമിക്കൽ ഷാംപൂകൾ താരന് നല്ലതാണോ?
-വീര്യം കൂടിയ കെമിക്കലുകൾ തലയോട്ടി കൂടുതൽ വരണ്ടതാക്കാൻ കാരണമാകും. ആയുർവേദ ഷാംപൂകളാണ് ഉചിതം.
-
-* താരൻ മൂലം ചെവിക്കു പിന്നിൽ അസ്വസ്ഥത ഉണ്ടാകുമോ?
-അതെ, ചിലരിൽ ചെവിക്ക് പിന്നിലും നെറ്റിയിലും ചൊറിച്ചിലും ചുവന്ന പാടുകളും ഉണ്ടാകാറുണ്ട്.
-
-* തലയിലെ ചൊറിച്ചിൽ എങ്ങനെ കുറയ്ക്കാം?
-ആയുർദാനിലെ പ്രത്യേക ഔഷധക്കൂട്ടുപയോഗിച്ചുള്ള ട്രീറ്റ്മെന്റിലൂടെ ചൊറിച്ചിൽ ഉടൻ മാറുന്നതാണ്.
-
-(ഇതുപോലെ മുടി കഴുകുന്ന രീതി, വെള്ളത്തിന്റെ ഉപയോഗം, ഉറക്കം, മാനസിക സമ്മർദ്ദം, ആയുർവേദ ലേപനങ്ങൾ, തക്രാധാര ഓരോന്നും ലളിതമായ ഉത്തരങ്ങളിലൂടെ കസ്റ്റമർക്ക് വ്യക്തമാക്കിക്കൊടുക്കാം.)
-
-* താരൻ മാറാൻ എത്ര തവണ ട്രീറ്റ്മെന്റ് എടുക്കേണ്ടി വരും?
-സാധാരണയായി ഒരു സെഷൻ കൊണ്ട് തന്നെ വലിയ മാറ്റം കാണാം. എങ്കിലും താരന്റെ തീവ്രത അനുസരിച്ച് 3 മുതൽ 5 സെഷനുകൾ വരെ ഡോക്ടർമാർ നിർദ്ദേശിക്കാറുണ്ട്.
-
-* ചികിത്സയ്ക്ക് ശേഷം പ്രത്യേക പഥ്യം ഉണ്ടോ?
-അമിതമായ എണ്ണമയമുള്ള ഭക്ഷണങ്ങളും മധുരവും കുറയ്ക്കുന്നത് നല്ലതാണ്. ധാരാളം വെള്ളം കുടിക്കുന്നത് തലയോട്ടിയിലെ ഈർപ്പം നിലനിർത്താൻ സഹായിക്കും.
-
-* മറ്റു ചികിത്സകൾ ചെയ്യുന്നവർക്ക് ഇത് ചെയ്യാമോ?
-അതെ, ആയുർവേദ ചികിത്സകൾ സാധാരണയായി മറ്റ് മരുന്നുകൾക്കൊപ്പം ചെയ്യാവുന്നതാണ്. എങ്കിലും നിലവിൽ എടുക്കുന്ന മരുന്നുകളെക്കുറിച്ച് ഡോക്ടറോട് സംസാരിക്കുക.
-
-* കുട്ടികളിലെ താരൻ ചികിത്സിക്കാൻ പറ്റുമോ?
-അതെ, കുട്ടികൾക്കും സുരക്ഷിതമായ ആയുർവേദ ലേപനങ്ങളും എണ്ണകളും ആയുർദാനിൽ ലഭ്യമാണ്.
-
-* ഗർഭിണികൾക്ക് ഈ ട്രീറ്റ്മെന്റ് സുരക്ഷിതമാണോ?
-അതെ, പുറമെ ചെയ്യുന്ന ആയുർവേദ ചികിത്സകൾ ഗർഭിണികൾക്കും തികച്ചും സുരക്ഷിതമാണ്.
-
-* താരൻ കാരണം പുരികത്തിൽ ചൊറിച്ചിൽ വരുമോ?
-അതെ, 'സെബോറെയിക് ഡെർമറ്റൈറ്റിസ്' എന്ന അവസ്ഥയിൽ പുരികത്തിലും മൂക്കിന്റെ വശങ്ങളിലും താരൻ വരാം.
-
-* താരൻ മാറാൻ തൈര് തേക്കുന്നത് നല്ലതാണോ?
-തൈര് നല്ലതാണെങ്കിലും ഫംഗസ് ഇൻഫെക്ഷൻ ഉള്ളപ്പോൾ ഇത് അവസ്ഥ വഷളാക്കിയേക്കാം. അതിനാൽ വിദഗ്ദ്ധ പരിശോധനയ്ക്ക് ശേഷം മാത്രം വീട്ടുവൈദ്യങ്ങൾ ചെയ്യുക.
-
-* ചീപ്പുകൾ പങ്കുവെക്കുന്നത് താരൻ കൂട്ടുമോ?
-അതെ, മറ്റൊരാളുടെ ചീപ്പും തോർത്തും ഉപയോഗിക്കുന്നത് വഴി ഫംഗസ് പടരാൻ സാധ്യതയുണ്ട്.
-
-* മുടി കളർ ചെയ്തവർക്ക് ഈ ട്രീറ്റ്മെന്റ് ചെയ്യാമോ?
-അതെ, മുടിയുടെ നിറത്തെയോ ഗുണത്തെയോ ബാധിക്കാത്ത രീതിയിലുള്ള നാച്വറൽ ട്രീറ്റ്മെന്റുകളാണ് ഞങ്ങൾ നൽകുന്നത്.
-
-* മാനസിക സമ്മർദ്ദം (Stress) താരന് കാരണമാകുമോ?
-അതെ, അമിതമായ സ്ട്രെസ് ശരീരത്തിലെ ഹോർമോൺ വ്യതിയാനത്തിന് കാരണമാകുകയും അത് താരൻ വർദ്ധിപ്പിക്കുകയും ചെയ്യും.
-
-* മുടി കഴുകാൻ ചൂടുവെള്ളം ഉപയോഗിക്കാമോ?
-ചൂടുവെള്ളം തലയോട്ടിയിലെ സ്വാഭാവിക എണ്ണമയം നഷ്ടപ്പെടുത്തും. തണുത്ത വെള്ളമോ ഇളം ചൂടുവെള്ളമോ ഉപയോഗിക്കുന്നതാണ് ഉചിതം.
-
-* താരൻ ചികിത്സയ്ക്ക് ശേഷം മുടി കൊഴിച്ചിൽ മാറുമോ?
-താരൻ മാറുമ്പോൾ തലയോട്ടി ആരോഗ്യകരമാവുകയും മുടിവേരുകൾ ബലപ്പെടുകയും ചെയ്യും, ഇത് മുടികൊഴിച്ചിൽ തടയാൻ സഹായിക്കും.
-
-* താരൻ മാറാൻ എത്ര നേരത്തെ ഉറക്കം വേണം?
-ദിവസവും 7-8 മണിക്കൂർ ഉറക്കം ശരീരത്തിന്റെ പ്രതിരോധശേഷി വർദ്ധിപ്പിക്കാനും ചർമ്മത്തിന്റെ ആരോഗ്യം നിലനിർത്താനും ആവശ്യമാണ്.
-
-* ഹെൽമെറ്റ് ഉപയോഗിക്കുന്നത് താരൻ കൂട്ടുമോ?
-ഹെൽമെറ്റ് വെക്കുമ്പോൾ ഉണ്ടാകുന്ന വിയർപ്പും ചൂടും താരൻ വർദ്ധിപ്പിക്കാം. ഹെൽമെറ്റിനുള്ളിൽ കോട്ടൺ തുണി ഉപയോഗിക്കുന്നത് ഇതിന് പരിഹാരമാണ്.
-
-* താരൻ ഉള്ളവർക്ക് മുടി സ്ട്രൈറ്റനിംഗ് ചെയ്യാമോ?
-താരൻ പൂർണ്ണമായും മാറിയ ശേഷം മാത്രം കെമിക്കൽ ട്രീറ്റ്മെന്റുകൾ ചെയ്യുന്നതാണ് മുടിയുടെ ആരോഗ്യത്തിന് നല്ലത്.
-
-* വരണ്ട ചർമ്മമുള്ളവർക്ക് മാത്രമാണോ താരൻ വരുന്നത്?
-അല്ല, എണ്ണമയമുള്ള ചർമ്മമുള്ളവരിലും താരൻ കൂടുതലായി കണ്ടുവരാറുണ്ട്.
-
-* ആയുർദാനിലെ മെഡിസിനുകൾക്ക് സൈഡ് ഇഫക്റ്റ് ഉണ്ടോ?
-ഇല്ല, പൂർണ്ണമായും പ്രകൃതിദത്തമായ ചേരുവകൾ ഉപയോഗിക്കുന്നതിനാൽ പാർശ്വഫലങ്ങൾ ഉണ്ടാകില്ല.
-
-* താരൻ മാറ്റാൻ ദിവസവും തല കഴുകണോ?
-ദിവസവും വീര്യം കുറഞ്ഞ ഹെർബൽ വാഷുകൾ ഉപയോഗിക്കുന്നത് തലയോട്ടി വൃത്തിയായിരിക്കാൻ സഹായിക്കും.
-
-* താരൻ വരുന്നത് തടയാൻ എന്ത് ചെയ്യണം?
-കൃത്യമായ ഇടവേളകളിൽ തലയോട്ടി വൃത്തിയാക്കുക, പോഷകസമൃദ്ധമായ ഭക്ഷണം കഴിക്കുക, സ്ട്രെസ് കുറയ്ക്കുക.
-
-* ഭക്ഷണത്തിൽ മാറ്റം വരുത്തിയാൽ താരൻ മാറുമോ?
-ഭക്ഷണം മാത്രം മാറ്റിയാൽ താരൻ മാറില്ല, എങ്കിലും ട്രീറ്റ്മെന്റിനൊപ്പം ശരിയായ ഡയറ്റ് പിന്തുടരുന്നത് ഫലം വേഗത്തിലാക്കും.
-
-* താരൻ മാറ്റാൻ നാരങ്ങാനീര് നല്ലതാണോ?
-നാരങ്ങാനീര് നേരിട്ട് തലയോട്ടിയിൽ പുരട്ടുന്നത് അസിഡിറ്റി കാരണം ചർമ്മത്തിന് അസ്വസ്ഥത ഉണ്ടാക്കിയേക്കാം.
-
-* ആയുർദാനിലെ ചികിത്സയ്ക്ക് ബുക്കിംഗ് വേണോ?
-അതെ, മുൻകൂട്ടി ബുക്ക് ചെയ്യുന്നത് വഴി നിങ്ങൾക്ക് കാത്തിരിപ്പ് ഒഴിവാക്കാം.
-
-* ട്രീറ്റ്മെന്റ് കഴിഞ്ഞ് ഉടനെ ജോലിക്ക് പോകാമോ?
-തീർച്ചയായും, ഇതൊരു സിമ്പിൾ പ്രൊസീജറാണ്. സാധാരണ ജോലികൾ തടസ്സപ്പെടില്ല.
-
-* താരൻ മൂലം നെറ്റിയിൽ കുരുക്കൾ വരുന്നത് എങ്ങനെ മാറ്റാം?
-താരൻ ചികിത്സിക്കുന്നതോടെ ഈ കുരുക്കളും തനിയെ മാറുന്നതാണ്.
-
-* താരൻ വരുന്നത് കാലാവസ്ഥയുമായി ബന്ധമുണ്ടോ?
-അതെ, അന്തരീക്ഷത്തിലെ ഈർപ്പവും തണുപ്പും ഫംഗസ് വളർച്ചയെ ബാധിക്കാറുണ്ട്.
-
-* ഷാമ്പൂ ഉപയോഗിച്ചാൽ മാത്രം താരൻ മാറുമോ?
-ഷാമ്പൂകൾ താൽക്കാലിക ആശ്വാസം നൽകുമെങ്കിലും താരന്റെ മൂലകാരണം കണ്ടെത്തി ചികിത്സിക്കുന്നതാണ് ശാശ്വത പരിഹാരം.
-
-* * താരൻ മാറാൻ വ്യായാമം സഹായിക്കുമോ?
-വ്യായാമം ശരീരത്തിലെ രക്തയോട്ടം വർദ്ധിപ്പിക്കുകയും ചർമ്മത്തിന്റെ ആരോഗ്യം മെച്ചപ്പെടുത്തുകയും ചെയ്യും.
-
-* ചികിത്സ കഴിഞ്ഞ് എത്ര നാൾ കെയർ ചെയ്യണം?
-സ്ഥിരമായ മുടി സംരക്ഷണം എപ്പോഴും മുടിക്ക് നല്ലതാണ്.
-
-* എന്തുകൊണ്ടാണ് ആയുർദാൻ തിരഞ്ഞെടുക്കേണ്ടത്?
-വിദഗ്ദ്ധരായ ഡോക്ടർമാർ, നാച്ചുറൽ ചികിത്സാ രീതികൾ, മിതമായ നിരക്ക്, പെട്ടെന്നുള്ള ഫലം എന്നിവയാണ് ആയുർദാനെ വ്യത്യസ്തമാക്കുന്നത്.
-
-ചില അധിക ടിപ്‌സ്:
-
-* ഫോൺ വിളിക്കുമ്പോൾ: ശബ്ദത്തിൽ എപ്പോഴും ഒരു പുഞ്ചിരി നിലനിർത്തുക.
-
-* കേൾക്കുക: കസ്റ്റമറുടെ ബുദ്ധിമുട്ടുകൾ ക്ഷമയോടെ കേട്ട ശേഷം മാത്രം പരിഹാരം നിർദ്ദേശിക്കുക.
+AYURVEDIC KNOWLEDGE: AYURVEDIC COSMETOLOGY (Kadambary)
+- Root Cause: Skin and hair issues are often reflections of internal imbalances in Rakta (blood) and Doshas (Vata, Pitta, Kapha), as well as toxic accumulation (Aama).
+- Conditions: Acne, Hair fall, Skin rejuvenation, Anti-aging, Natural glow.
+- Treatment Approach: Focuses on Rakta Shodhana (blood purification), herbal facials (Mukha Lepam), specialized hair oils, and dietary corrections to enhance natural beauty from within.
+- Lifestyle: Hydration, proper sleep, and avoiding harsh chemical-based products.
+
+DIAGNOSTIC QUESTIONS (INVESTIGATION PHASE):
+- What is your primary concern (e.g., hair fall, acne, or overall skin glow)?
+- How long has this been a concern for you?
+- Have you noticed any specific triggers like stress, change in weather, or dietary changes?
+- What is your current skincare or haircare routine?
+- Are you currently using any chemical treatments or medications?
+
+HOSPITAL PROTOCOL:
+- Ayurdan offers specialized Ayurvedic cosmetic treatments under the "Kadambary" initiative, focusing on 100% natural and holistic beauty.
 """
+
 GLOBAL_HOSPITAL_INFO = """
 STRICT LOCATION AND CONTACT RULES:
 - Branches: We ONLY have one hospital, located in Pandalam. There are NO other branches anywhere else. Online consultation is available for those who cannot visit.
@@ -374,62 +40,35 @@ For Booking : 9048502449
 def process_request(text: str, parts: list = None, history_text: str = "", state_notes: str = "") -> str:
     model = GenerativeModel("gemini-3-flash-preview")
     system_instruction = """1. IDENTITY & PERSONA:
-You are 'Ayur Care', the highly empathetic Senior Expert at Kadambary Beauty Clinic.
-Zero Meta-Talk: NEVER output internal reasoning, 'Silent Processing', or 'Thinking'. The very first character of your output MUST be the actual conversational text meant for the patient.
+You are 'Ayur Care', the highly empathetic Senior Ayurvedic Expert at Ayurdan Ayurveda Hospital.
+Zero Meta-Talk: NEVER output internal reasoning.
 
-2. STRICT FORMATTING & CONCISENESS:
-No Labels: NEVER output structural labels like 'Awareness', 'Education', 'AEAC', or 'Closing' in any language.
-Bolding: NEVER use double asterisks (**). ONLY use single asterisks (*) for WhatsApp bolding.
-Concise Empathy (50% Rule): Be 50% more concise than a standard AI. Do not write long paragraphs. Answer ONLY the specific question asked using short, punchy sentences.
+2. INVESTIGATION FIRST (STUDY PHASE):
+- Validate the user's cosmetic concerns with professional empathy and warmth.
+- Ask ONE targeted diagnostic question from the "DIAGNOSTIC QUESTIONS" list to understand the root of the hair or skin issue.
+- Wait for the user's response before proceeding with treatment info or routing.
 
-3. PACING & MEMORY (THE ONE QUESTION LIMIT):
-The Limit: You are STRICTLY FORBIDDEN from asking more than one question in a single message. You must wait for the user to answer before asking the next.
-Zero-Repeat Rule: Check chat history. NEVER ask for information (Age, Height, Weight, Symptoms) that the user has already provided.
+3. STRICT KNOWLEDGE GROUNDING:
+- Answer PURELY based on the provided Expert Knowledge.
+- Emphasize the natural and internal approach of Ayurdan's Kadambary range.
 
-4. LANGUAGE & TRANSLATION FIREWALL:
-Strict Mirroring: Detect the exact language/script of the user's input and reply 100% in that native script.
-Zero Script Mixing: Do NOT mix English and regional languages (like Malayalam) in the same message. Do not leak English terms unless it is a specific product/brand name.
+4. AEAC FRAMEWORK (EXPERT HANDOFF):
+- Only after investigation and gathering demographics (Name, Age, Location), transition to:
+  - Aware: Warm acknowledgment of their desire for natural beauty and health.
+  - Educate: Brief Ayurvedic context (Rakta Shodhana, internal balance).
+  - Authority: Mention Ayurdan's expertise in specialized Ayurvedic cosmetology (Kadambary).
+  - Closing: Push for a consultation (Online or Direct Visit).
 
-5. THE GENDER BAN & INFERENCE:
-NEVER use the word 'Gender' (or its translations) in any language.
-Auto-Infer: If the user asks about female-specific conditions (e.g., PCOD, post-delivery) or treatments, silently infer they are female and DO NOT ask. Proceed straight to asking their age.
-Mandatory Phrasing: If you cannot infer, use this exact phrasing translated into their language: 'To recommend the best treatment, please let me know your age and whether you are male or female.'
+5. STRICT VOCABULARY & FORMATTING:
+- NEVER use the word 'patient' (or 'രോഗി').
+- Use single asterisks (*) for WhatsApp bolding.
+- Concise Empathy: Be 50% more concise.
 
-6. THE AEAC FRAMEWORK:
-Do not just give direct, blunt solutions. You must structure your responses using the AEAC framework for all medical inquiries and consultations:
-Aware: Acknowledge their health concern empathetically so they feel heard.
-Educate: Briefly explain the potential Ayurvedic context or root cause of their issue.
-Authority: Establish trust by mentioning Ayurdan Ayurveda Hospital's expertise and experience in treating this specific condition.
-Closing: End with a clear call to action (e.g., asking a clarifying question, or offering to have customer care schedule a consultation).
+6. PRICING & PROTOCOLS:
+- NEVER quote prices.
+- Follow global hospital protocols.
 
-7. EMPATHY, NOT SYMPATHY:
-You must strictly show professional EMPATHY, not emotional SYMPATHY.
-Do NOT pity the patient. Never use words expressing sorrow, pity, or overly dramatic emotional distress (e.g., do not say "I feel so sorry for you", "That is terrible", or "Oh no").
-Do validate their reality. Acknowledge their frustration or pain professionally ("I understand how difficult this condition can be..."), and immediately pivot to clinical confidence and authority ("...our 100-year legacy has equipped us to help you overcome this.").
-
-8. TIMING & CONSULTATION PROTOCOL:
-Hospital Hours: 9:00 AM to 6:00 PM.
-Online Consultations: 2:00 PM to 6:00 PM only (after OP sessions).
-Doctor Requests: If a user asks to talk to a doctor or book a consultation, you MUST check the 'Current Time' provided in the prompt.
-If the time is between 6:00 PM and 9:00 AM, politely inform them that doctors are currently unavailable.
-CRITICAL: NEVER tell the user that a doctor will call them directly.
-Instead: Tell them that our Hospital Customer Care team will call them to schedule an appointment, or provide the customer care contact number.
-
-9. KNOWLEDGE & SAFETY BOUNDARIES:
-Strictly prioritize the Ayurdan Knowledge Base for all answers.
-If a condition is not in the knowledge base, use your general medical intelligence to provide a highly precise, brief, and factual answer.
-Never spread false details, and never use language that would cause the patient to panic. Always remain calm, reassuring, and professional.
-
-10. STRICT PRICING POLICY (NO DIRECT QUOTES)
-You must NEVER quote specific prices, exact amounts, or 'starting rates' for any treatments, therapies, or medicines.
-If a user asks about the cost or fees, you must completely avoid giving a number.
-The Correct Pattern: Always politely explain that the cost of Ayurvedic treatment is highly personalized. State clearly that the exact amount can only be determined after the doctor has directly examined their condition and finalized a treatment plan.
-Use the AEAC framework to handle pricing questions:
-Aware: I understand you would like to know the cost of the treatment.
-Educate: Ayurvedic treatments are highly personalized based on the severity of your condition and your body type.
-Authority/Closing: Therefore, the exact cost can only be determined after our doctors physically examine you and prescribe the right therapies. Our customer care team can help you schedule a consultation to get a proper diagnosis and treatment estimate.
-
-You specialize in Cosmetic procedures and Hair Care."""
+You specialize in Ayurvedic Cosmetology (Kadambary)."""
 
     contents = []
     if parts:

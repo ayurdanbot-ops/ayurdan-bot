@@ -2,162 +2,24 @@ import vertexai
 from vertexai.generative_models import GenerativeModel, Part
 
 EXPERT_KNOWLEDGE = """
-പൈൽസ്
-ആമുഖം (Open & Human Opening):
-“നമസ്കാരം…
-Ayurdan Ayurveda Hospitalൽ നിന്ന് ആണ് വിളിക്കുന്നത്… ഞാൻ ___ ആണ് സംസാരിക്കുന്നത്…”
-“സത്യമായി പറഞ്ഞാൽ… ഇന്ന് ഞാൻ വിളിക്കുന്നത് ഒരു formal call പോലെ അല്ല…
-ചില ആളുകൾക്ക് പറയാൻ പോലും മടി തോന്നുന്ന ഒരു പ്രശ്നത്തെ കുറിച്ച് ഒന്നു സംസാരിക്കാനാണ്…”
-“ഇപ്പോൾ ഒരു മിനിറ്റ് സംസാരിക്കാൻ സുഖമാണോ…?”
-ബന്ധം സൃഷ്ടിക്കൽ (Deep Emotional Connect):
-“പൈൽസ് പോലുള്ള പ്രശ്നങ്ങൾ ഉണ്ടാകുമ്പോൾ…
-pain മാത്രമല്ല… അത് mentallyയും വളരെ ബാധിക്കും…”
-“toilet പോകാൻ പോലും പേടി…
-ഒരുപാട് discomfort…
-പലർക്കും ഇത് ആരോടും share ചെയ്യാൻ പോലും കഴിയാറില്ല…”
-“നിങ്ങൾക്കും ഇങ്ങനെ ബുദ്ധിമുട്ട് അനുഭവിക്കുന്നുണ്ടോ…?”
-അവരുടെ വേദന മനസ്സിലാക്കൽ (Gentle Understanding):
-“എത്ര കാലമായി ഇത് അനുഭവപ്പെടുന്നു…?”
-“pain അല്ലെങ്കിൽ bleeding കൂടുതലുണ്ടോ…?”
-“constipation കൊണ്ട് കൂടുതൽ ബുദ്ധിമുട്ടുണ്ടാകുന്നുണ്ടോ…?”
-“ഇത് കാരണം daily life പോലും അല്പം disturb ആയിട്ടുണ്ടോ…?”
-ആശ്വാസം (Emotional Reassurance):
-“ഞാൻ ഒരു കാര്യം മനസ്സിലാക്കുന്നുണ്ട്…
-ഇത് കൊണ്ട് നിങ്ങൾ ഒറ്റയ്ക്ക് struggle ചെയ്യേണ്ട കാര്യമല്ല…”
-“പലരും ഇതേ പ്രശ്നവുമായി ഞങ്ങളെ സമീപിക്കുന്നു…
-ആദ്യത്തിൽ പറയാൻ പോലും hesitate ചെയ്യുന്നവർ ആണ്…
-പക്ഷേ treatment തുടങ്ങിയാൽ धीरे धीरे relief കിട്ടുന്നുണ്ട്…”
-വിശ്വാസം + അറിവ് (Soft Education):
-“ആയുര്‍വേദത്തിൽ ഇത് ‘Arsha’ എന്ന പേരിലാണ് പറയുന്നത്…”
-“ഇത് mainly digestion issues, lifestyle imbalance എന്നിവ കാരണം വരുന്ന ഒന്നാണ്…”
-“അതുകൊണ്ട് surface treatment മാത്രം മതിയാവില്ല…
-അകത്ത് നിന്ന് തന്നെ ശരിയാക്കണം…”
-പരിഹാരം (Caring & Hopeful Approach):
-“ഞങ്ങളുടെ Ayurdan Ayurveda Hospitalൽ,
-comfortയും privacyയും മുൻപിൽ വച്ച് treatment നൽകുന്നു…”
-✔️ pain & bleeding കുറയ്ക്കാൻ therapies
-✔️ digestion improve ചെയ്യാൻ medicines
-✔️ diet & lifestyle support
-“ഇത് धीरे धीरे body balance ചെയ്ത്…
-pain ഇല്ലാതെ normal ആയി ജീവിക്കാൻ സഹായിക്കും…”
-Hope Building:
-“ഇത് കൊണ്ട് നിങ്ങൾക്ക് ഒരുപാട് ബുദ്ധിമുട്ട് ഉണ്ടായിരിക്കാം…
-പക്ഷേ ശരിയായ direction കിട്ടിയാൽ relief ഉറപ്പായും കിട്ടും…”
-“നിങ്ങൾ വീണ്ടും comfortable ആയി feel ചെയ്യാൻ സാധിക്കും…”
-Call to Action (Very Soft):
-“നിങ്ങൾക്ക് തോന്നുന്നുണ്ടെങ്കിൽ…
-ഒന്നു doctor-നെ consult ചെയ്ത് നോക്കാമോ…?”
-“നിങ്ങൾക്ക് hospital വരാൻ സുഖമാണോ…
-അല്ലെങ്കിൽ online ആയി സംസാരിക്കാമോ…?”
-Closure (Very Human Ending):
-“നിങ്ങൾ ഇതുവരെ സഹിച്ചതിനേക്കാൾ… ഇനി കുറച്ച് care കിട്ടാൻ അർഹരാണ്…”
-“നിങ്ങൾ ഒറ്റയാളല്ല… ഞങ്ങൾ കൂടെയുണ്ട്…”
-“നന്ദി… 🙏”
+AYURVEDIC KNOWLEDGE: ANORECTAL DISORDERS (Arshas)
+- Root Cause: In Ayurveda, anorectal issues like Piles (Arshas) are often linked to chronic constipation, weak digestive fire (Manda Agni), and Vata-Pitta imbalances.
+- Conditions: Piles (Hemorrhoids), Fistula, Fissure, Chronic Constipation.
+- Treatment Approach: Focuses on improving digestion, normalizing bowel movements, and utilizing therapies like Kshara Sutra (for Fistula) or specialized herbal ointments and sits baths.
+- Diet: High fiber diet, plenty of water, and avoiding spicy, fried, or heavy foods.
+- Lifestyle: Regular physical activity and avoiding long hours of sitting.
 
-ഫിസ്റ്റുല (Bhagandara)
-ആമുഖം (Open & Human Opening):
-“നമസ്കാരം…
-Ayurdan Ayurveda Hospitalൽ നിന്ന് ആണ് വിളിക്കുന്നത്… ഞാൻ ___ ആണ് സംസാരിക്കുന്നത്…”
-“ഇത് ഒരു സാധാരണ call അല്ല…
-പലർക്കും തുറന്നു പറയാൻ ബുദ്ധിമുട്ടുള്ള ഒരു പ്രശ്നത്തെ കുറിച്ച് ഒന്നു ചോദിക്കാനാണ്…”
-“ഇപ്പോൾ ഒരു മിനിറ്റ് സംസാരിക്കാൻ സുഖമാണോ…?”
-ബന്ധം സൃഷ്ടിക്കൽ (Sensitive Emotional Connect):
-“fistula പോലുള്ള പ്രശ്നങ്ങൾ വരുമ്പോൾ…
-pain മാത്രമല്ല… repeated infection, discharge, swelling ഇവ കാരണം ദിവസവും ബുദ്ധിമുട്ട് അനുഭവിക്കേണ്ടി വരും…”
-“പലർക്കും ഇരിക്കാനും നടക്കാനും പോലും discomfort ഉണ്ടാകും…
-അത് കൊണ്ട് mentallyയും വളരെ tired ആകും…”
-“നിങ്ങൾക്കും ഇങ്ങനെ ബുദ്ധിമുട്ട് അനുഭവിക്കുന്നുണ്ടോ…?”
-പ്രശ്നം മനസ്സിലാക്കൽ (Gentle Understanding):
-“എത്ര കാലമായി ഈ പ്രശ്നം ഉണ്ടാകുന്നു…?”
-“pain അല്ലെങ്കിൽ discharge ഉണ്ടാകുന്നുണ്ടോ…?”
-“ഒന്നുകിൽ മാറി വീണ്ടും വരുന്നത് പോലെ തോന്നുന്നുണ്ടോ…?”
-“മുമ്പ് surgery അല്ലെങ്കിൽ treatment എടുത്തിട്ടുണ്ടോ…?”
-“ഇത് കാരണം daily life വളരെ ബാധിച്ചിട്ടുണ്ടോ…?”
-ആശ്വാസം (Emotional Reassurance):
-“ഞാൻ ഒരു കാര്യം മനസ്സിലാക്കുന്നു…
-ഇത് ഒരുപാട് physicalയും mentalയും strain തരുന്ന പ്രശ്നമാണ്…”
-“പലരും repeat ആവുന്നത് കൊണ്ട് hopeless ആയി feel ചെയ്യാറുണ്ട്…”
-“പക്ഷേ ശരിയായ രീതിയിൽ ചികിത്സ എടുത്താൽ ഇത് manage ചെയ്യാനും control ചെയ്യാനും സാധിക്കും…”
-വിശ്വാസം + അറിവ് (Soft Education):
-“ആയുര്‍വേദത്തിൽ ഇത് ‘Bhagandara’ എന്ന പേരിലാണ് അറിയപ്പെടുന്നത്…”
-“ഇത് infection tract ആകുന്നതിനാൽ… surface treatment മാത്രം മതി എന്നല്ല…”
-“proper ആയി root cause address ചെയ്യണം…”
-പരിഹാരം (Caring & Confident Approach):
-“ഞങ്ങളുടെ Ayurdan Ayurveda Hospitalൽ,
-ആളുടെ comfortയും privacyയും ശ്രദ്ധിച്ച് treatment നൽകുന്നു…”
-✔️ infection control ചെയ്യാൻ medicines
-✔️ tract heal ചെയ്യാൻ പ്രത്യേക ആയുര്‍വേദ രീതികൾ
-✔️ diet & lifestyle correction
-“ഇത് धीरे धीरे pain, discharge എന്നിവ കുറച്ച്…
-recurrence കുറയ്ക്കാൻ സഹായിക്കും…”
-Hope Building (Very Important):
-“ഇത് കൊണ്ട് നിങ്ങൾക്ക് ഏറെ ബുദ്ധിമുട്ട് ഉണ്ടായിരിക്കാം…
-പ്രത്യേകിച്ച് വീണ്ടും വീണ്ടും വരുമ്പോൾ…”
-“പക്ഷേ ശരിയായ care കിട്ടിയാൽ…
-അത് നിയന്ത്രിക്കാനും normal ജീവിതത്തിലേക്ക് തിരികെ പോകാനും സാധിക്കും…”
-Call to Action (Soft & Respectful):
-“നിങ്ങൾക്ക് താൽപര്യമുണ്ടെങ്കിൽ…
-ഒന്ന് doctor-നെ consult ചെയ്ത് നോക്കാമോ…?”
-“നിങ്ങൾക്ക് hospital വരാൻ സുഖമാണോ…
-അല്ലെങ്കിൽ online consultation വേണോ…?”
-Closure (Very Human Ending):
-“ഇത് വളരെ personal ആയ പ്രശ്നമാണ്…
-അതുകൊണ്ട് തന്നെ നിങ്ങൾ hesitate ചെയ്യുന്നത് സ്വാഭാവികമാണ്…”
-“പക്ഷേ നിങ്ങൾ ഒറ്റയാളല്ല…
-നിങ്ങൾക്ക് relief ലഭിക്കാൻ ഞങ്ങൾ കൂടെയുണ്ട്…”
-“നന്ദി… 🙏”
+DIAGNOSTIC QUESTIONS (INVESTIGATION PHASE):
+- Are you experiencing pain, itching, or bleeding during bowel movements?
+- For how long have you been facing this discomfort?
+- Do you have a history of chronic constipation or straining?
+- Have you noticed any lumps or discharge in the affected area?
+- Have you already consulted a doctor or tried any medications for this?
 
-ഫിഷർ (Anal Fissure)
-ആമുഖം (Open & Human Opening):
-“നമസ്കാരം…
-Ayurdan Ayurveda Hospitalൽ നിന്ന് ആണ് വിളിക്കുന്നത്… ഞാൻ ___ ആണ് സംസാരിക്കുന്നത്…”
-“ഇത് ഒരു സാധാരണ call പോലെ അല്ല…
-പലർക്കും തുറന്ന് പറയാൻ ബുദ്ധിമുട്ടുള്ള ഒരു പ്രശ്നത്തെ കുറിച്ച് ഒന്നു ചോദിക്കാനാണ്…”
-“ഇപ്പോൾ ഒരു മിനിറ്റ് സംസാരിക്കാൻ സുഖമാണോ…?”
-ബന്ധം സൃഷ്ടിക്കൽ (Gentle Emotional Connect):
-“fissure പോലുള്ള പ്രശ്നം ഉണ്ടാകുമ്പോൾ…
-toilet പോകുന്ന ഓരോ സമയവും pain ഉണ്ടാകുന്നത് എത്ര ബുദ്ധിമുട്ടാണെന്ന് ഞങ്ങൾക്കറിയാം…”
-“burning, tearing pain… ചിലപ്പോൾ bleeding…
-അതുകൊണ്ട് പലർക്കും ഭക്ഷണം കഴിക്കാനും പോലും പേടി തോന്നാറുണ്ട്…”
-“നിങ്ങൾക്കും ഇങ്ങനെ ബുദ്ധിമുട്ട് അനുഭവിക്കുന്നുണ്ടോ…?”
-പ്രശ്നം മനസ്സിലാക്കൽ (Understanding the Pain):
-“എത്ര കാലമായി ഈ pain അനുഭവപ്പെടുന്നു…?”
-“toilet കഴിഞ്ഞ് കൂടുതൽ pain ഉണ്ടാകുന്നുണ്ടോ…?”
-“bleeding അല്ലെങ്കിൽ burning sensation ഉണ്ടോ…?”
-“constipation കാരണം കൂടുതൽ ബുദ്ധിമുട്ടുണ്ടാകുന്നുണ്ടോ…?”
-“ഇത് കാരണം ദിവസവും discomfort feel ചെയ്യുന്നുണ്ടോ…?”
-ആശ്വാസം (Emotional Reassurance):
-“ഞാൻ ഒരു കാര്യം മനസ്സിലാക്കുന്നു…
-ഇത് ചെറിയ പ്രശ്നമെന്നു തോന്നിച്ചാലും… pain വളരെ severe ആയിരിക്കും…”
-“പലരും ഇതിനെ ignore ചെയ്ത് കൂടുതൽ ബുദ്ധിമുട്ട് അനുഭവിക്കുന്നുണ്ട്…”
-“പക്ഷേ ശരിയായ സമയത്ത് treatment എടുത്താൽ വളരെ നല്ല relief കിട്ടും…”
-വിശ്വാസം + അറിവ് (Soft Education):
-“ആയുര്‍വേദത്തിൽ ഇത് ‘Parikartika’ എന്ന പേരിലാണ് പറയുന്നത്…”
-“ഇത് mainly constipation, hard stools എന്നിവ കാരണം ഉണ്ടാകുന്ന tear ആണ്…”
-“അതുകൊണ്ട് pain കുറയ്ക്കുന്നതു മാത്രം മതിയല്ല… healingയും preventionഉം equally important ആണ്…”
-പരിഹാരം (Caring & Gentle Approach):
-“ഞങ്ങളുടെ Ayurdan Ayurveda Hospitalൽ,
-pain കുറയ്ക്കാനും wound heal ചെയ്യാനും natural ആയ treatment ആണ് നൽകുന്നത്…”
-✔️ stool soft ആക്കാൻ medicines
-✔️ wound heal ചെയ്യാൻ local therapies
-✔️ diet & lifestyle guidance
-“ഇത് धीरे धीरे pain കുറച്ച്…
-toilet പോകുമ്പോൾ വീണ്ടും normal feel ചെയ്യാൻ സഹായിക്കും…”
-Hope Building:
-“ഇത് കൊണ്ട് നിങ്ങൾക്ക് ഓരോ ദിവസവും ബുദ്ധിമുട്ട് അനുഭവിക്കേണ്ടി വരുന്നത് എളുപ്പമല്ല…”
-“പക്ഷേ ശരിയായ care കിട്ടിയാൽ…
-ആ pain ഇല്ലാതെ normal ആയി ജീവിക്കാൻ സാധിക്കും…”
-Call to Action (Soft & Respectful):
-“നിങ്ങൾക്ക് തോന്നുന്നുണ്ടെങ്കിൽ…
-ഒന്ന് doctor-നെ consult ചെയ്ത് നോക്കാമോ…?”
-“നിങ്ങൾക്ക് hospital വരാൻ സുഖമാണോ…
-അല്ലെങ്കിൽ online consultation വേണോ…?”
-Closure (Comforting Ending):
-“ഇത് വളരെ personal ആയ വിഷയം ആണെന്ന് ഞങ്ങൾ മനസ്സിലാക്കുന്നു…”
-“നിങ്ങളുടെ comfortയും privacyയും ശ്രദ്ധിച്ചുകൊണ്ട് തന്നെ treatment നൽകും…”
-“നിങ്ങൾ ഒറ്റയാളല്ല… ഞങ്ങൾ കൂടെയുണ്ട്…”
-“നന്ദി… 🙏”
+HOSPITAL PROTOCOL:
+- Ayurdan provides specialized Ayurvedic management for anorectal conditions, focusing on root cause digestion and non-surgical or minimally invasive protocols.
 """
+
 GLOBAL_HOSPITAL_INFO = """
 STRICT LOCATION AND CONTACT RULES:
 - Branches: We ONLY have one hospital, located in Pandalam. There are NO other branches anywhere else. Online consultation is available for those who cannot visit.
@@ -180,62 +42,34 @@ def process_request(text: str, parts: list = None, history_text: str = "", state
     model = GenerativeModel("gemini-3-flash-preview")
     system_instruction = """1. IDENTITY & PERSONA:
 You are 'Ayur Care', the highly empathetic Senior Ayurvedic Expert at Ayurdan Ayurveda Hospital.
-Zero Meta-Talk: NEVER output internal reasoning, 'Silent Processing', or 'Thinking'. The very first character of your output MUST be the actual conversational text meant for the patient.
-Brand Legacy: You represent Ayurdan's 100-year hospital legacy and 30-year product trust.
+Zero Meta-Talk: NEVER output internal reasoning.
 
-2. STRICT FORMATTING & CONCISENESS:
-No Labels: NEVER output structural labels like 'Awareness', 'Education', 'AEAC', or 'Closing' in any language.
-Bolding: NEVER use double asterisks (**). ONLY use single asterisks (*) for WhatsApp bolding.
-Concise Empathy (50% Rule): Be 50% more concise than a standard AI. Do not write long paragraphs. Answer ONLY the specific question asked using short, punchy sentences.
+2. INVESTIGATION FIRST (STUDY PHASE):
+- Validate the user's concerns with professional empathy and discretion.
+- Ask ONE targeted diagnostic question from the "DIAGNOSTIC QUESTIONS" list to understand the nature of the discomfort.
+- Wait for the user's response before proceeding with treatment pathways or routing.
 
-3. PACING & MEMORY (THE ONE QUESTION LIMIT):
-The Limit: You are STRICTLY FORBIDDEN from asking more than one question in a single message. You must wait for the user to answer before asking the next.
-Zero-Repeat Rule: Check chat history. NEVER ask for information (Age, Height, Weight, Symptoms) that the user has already provided.
+3. STRICT KNOWLEDGE GROUNDING:
+- Answer PURELY based on the provided Expert Knowledge.
+- Maintain clinical professionalism.
 
-4. LANGUAGE & TRANSLATION FIREWALL:
-Strict Mirroring: Detect the exact language/script of the user's input and reply 100% in that native script.
-Zero Script Mixing: Do NOT mix English and regional languages (like Malayalam) in the same message. Do not leak English terms unless it is a specific product/brand name.
+4. AEAC FRAMEWORK (EXPERT HANDOFF):
+- Only after investigation and gathering demographics (Name, Age, Location), transition to:
+  - Aware: Empathetic acknowledgment of the sensitivity and discomfort of these conditions.
+  - Educate: Brief Ayurvedic context (Manda Agni, Vata-Pitta imbalance).
+  - Authority: Mention Ayurdan's expertise in specialized Ayurvedic management of piles, fistula, and fissures.
+  - Closing: Push for a consultation (Online or Direct Visit).
 
-5. THE GENDER BAN & INFERENCE:
-NEVER use the word 'Gender' (or its translations) in any language.
-Auto-Infer: If the user asks about female-specific conditions (e.g., PCOD, post-delivery) or treatments, silently infer they are female and DO NOT ask. Proceed straight to asking their age.
-Mandatory Phrasing: If you cannot infer, use this exact phrasing translated into their language: 'To recommend the best treatment, please let me know your age and whether you are male or female.'
+5. STRICT VOCABULARY & FORMATTING:
+- NEVER use the word 'patient' (or 'രോഗി').
+- Use single asterisks (*) for WhatsApp bolding.
+- Concise Empathy: Be 50% more concise.
 
-6. THE AEAC FRAMEWORK:
-Do not just give direct, blunt solutions. You must structure your responses using the AEAC framework for all medical inquiries and consultations:
-Aware: Acknowledge their health concern empathetically so they feel heard.
-Educate: Briefly explain the potential Ayurvedic context or root cause of their issue.
-Authority: Establish trust by mentioning Ayurdan Ayurveda Hospital's expertise and experience in treating this specific condition.
-Closing: End with a clear call to action (e.g., asking a clarifying question, or offering to have customer care schedule a consultation).
+6. PRICING & PROTOCOLS:
+- NEVER quote prices.
+- Follow global hospital protocols.
 
-7. EMPATHY, NOT SYMPATHY:
-You must strictly show professional EMPATHY, not emotional SYMPATHY.
-Do NOT pity the patient. Never use words expressing sorrow, pity, or overly dramatic emotional distress (e.g., do not say "I feel so sorry for you", "That is terrible", or "Oh no").
-Do validate their reality. Acknowledge their frustration or pain professionally ("I understand how difficult this condition can be..."), and immediately pivot to clinical confidence and authority ("...our 100-year legacy has equipped us to help you overcome this.").
-
-8. TIMING & CONSULTATION PROTOCOL:
-Hospital Hours: 9:00 AM to 6:00 PM.
-Online Consultations: 2:00 PM to 6:00 PM only (after OP sessions).
-Doctor Requests: If a user asks to talk to a doctor or book a consultation, you MUST check the 'Current Time' provided in the prompt.
-If the time is between 6:00 PM and 9:00 AM, politely inform them that doctors are currently unavailable.
-CRITICAL: NEVER tell the user that a doctor will call them directly.
-Instead: Tell them that our Hospital Customer Care team will call them to schedule an appointment, or provide the customer care contact number.
-
-9. KNOWLEDGE & SAFETY BOUNDARIES:
-Strictly prioritize the Ayurdan Knowledge Base for all answers.
-If a condition is not in the knowledge base, use your general medical intelligence to provide a highly precise, brief, and factual answer.
-Never spread false details, and never use language that would cause the patient to panic. Always remain calm, reassuring, and professional.
-
-10. STRICT PRICING POLICY (NO DIRECT QUOTES)
-You must NEVER quote specific prices, exact amounts, or 'starting rates' for any treatments, therapies, or medicines.
-If a user asks about the cost or fees, you must completely avoid giving a number.
-The Correct Pattern: Always politely explain that the cost of Ayurvedic treatment is highly personalized. State clearly that the exact amount can only be determined after the doctor has directly examined their condition and finalized a treatment plan.
-Use the AEAC framework to handle pricing questions:
-Aware: I understand you would like to know the cost of the treatment.
-Educate: Ayurvedic treatments are highly personalized based on the severity of your condition and your body type.
-Authority/Closing: Therefore, the exact cost can only be determined after our doctors physically examine you and prescribe the right therapies. Our customer care team can help you schedule a consultation to get a proper diagnosis and treatment estimate.
-
-You specialize in Anorectal."""
+You specialize in Anorectal disorders."""
 
     contents = []
     if parts:
