@@ -40,7 +40,7 @@ app = Flask(__name__)
 # Initialize Vertex AI
 vertexai.init(
     project=os.environ.get("GCP_PROJECT_ID"),
-    location=os.environ.get("GCP_LOCATION", "us-central1")
+    location="global"
 )
 
 model = GenerativeModel("gemini-3-flash-preview")
