@@ -13,6 +13,7 @@ from flask import Flask, request, jsonify
 import vertexai
 from vertexai.generative_models import GenerativeModel, Part, SafetySetting
 from dotenv import load_dotenv
+from google.api_core.exceptions import ResourceExhausted
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', force=True)
 logging.getLogger().setLevel(logging.INFO)
@@ -138,17 +139,28 @@ def triage_user_intent(message_text):
     return "expert_rejuvenation"
 
 def call_gemini_with_retry(contents, system_prompt=None):
-    try:
-        if system_prompt:
-            dynamic_model = GenerativeModel("gemini-3-flash-preview", system_instruction=system_prompt)
-        else:
-            dynamic_model = model
+    max_retries = 3
+    retry_delay = 2
+    for attempt in range(max_retries):
+        try:
+            if system_prompt:
+                dynamic_model = GenerativeModel("gemini-3-flash-preview", system_instruction=system_prompt)
+            else:
+                dynamic_model = model
 
-        response = dynamic_model.generate_content(contents)
-        return response.text.strip()
-    except Exception as e:
-        logging.error(f"Vertex AI Error: {e}")
-        return "I am just double-checking your details with our senior experts. Give me just a moment, and I will get right back to you!"
+            response = dynamic_model.generate_content(contents)
+            return response.text.strip()
+        except ResourceExhausted:
+            if attempt < max_retries - 1:
+                logging.warning(f"Quota exceeded. Retrying in {retry_delay}s... (Attempt {attempt + 1})")
+                time.sleep(retry_delay)
+                retry_delay *= 2
+            else:
+                return "I am receiving too many requests right now. Please give me a moment and try asking again!"
+        except Exception as e:
+            logging.error(f"Vertex AI Error: {e}")
+            return "I am just double-checking your details with our senior experts. Give me just a moment, and I will get right back to you!"
+
 
 def send_whatsapp_message(phone, msg):
     from zoko_client import send_zoko_message

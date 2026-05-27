@@ -1,3 +1,5 @@
+from google.api_core.exceptions import ResourceExhausted
+import time
 import vertexai
 from vertexai.generative_models import GenerativeModel, Part
 
@@ -81,5 +83,17 @@ You specialize in Diabetes."""
     if not contents:
         return "No content provided."
 
-    response = model.generate_content(contents, system_instruction=system_instruction)
-    return response.text
+    max_retries = 3
+    retry_delay = 2
+    for attempt in range(max_retries):
+        try:
+            response = model.generate_content(contents, system_instruction=system_instruction)
+            return response.text.strip()
+        except ResourceExhausted:
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                retry_delay *= 2
+            else:
+                return "I am receiving too many requests right now. Please give me a moment and try asking again!"
+        except Exception as e:
+            return f"Error: {e}"
