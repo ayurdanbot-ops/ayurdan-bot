@@ -4,6 +4,7 @@ import sqlite3
 import os
 import json
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from collections import OrderedDict
 import time
 import tempfile
@@ -70,6 +71,9 @@ class ProcessedMessagesCache:
             self.cache.popitem(last=False)
 
 processed_messages = ProcessedMessagesCache(1000)
+
+# Global executor for background tasks
+executor = ThreadPoolExecutor(max_workers=4)
 
 def db_init():
     conn = sqlite3.connect(DB_PATH)
@@ -233,8 +237,7 @@ def webhook():
         return "OK", 200
     if msg_id:
         processed_messages.add(msg_id)
-    thread = threading.Thread(target=handle_message, args=(payload,))
-    thread.start()
+    executor.submit(handle_message, payload)
     return "OK", 200
 
 def handle_message(payload):
