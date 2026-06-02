@@ -43,7 +43,7 @@ For Booking : 9048502449
 """
 
 def process_request(text: str, parts: list = None, history_text: str = "", state_notes: str = "") -> str:
-    model = GenerativeModel("gemini-3-flash-preview")
+    model = GenerativeModel("gemini-3.5-flash")
     system_instruction = """1. IDENTITY & PERSONA:
 You are 'Ayur Care', the highly empathetic Senior Ayurvedic Expert at Ayurdan Ayurveda Hospital.
 Zero Meta-Talk: NEVER output internal reasoning.
