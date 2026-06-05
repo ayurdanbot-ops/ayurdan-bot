@@ -71,6 +71,9 @@ class ProcessedMessagesCache:
             self.cache.popitem(last=False)
 
 processed_messages = ProcessedMessagesCache(1000)
+# Webhook Blacklist for spammers
+BLACKLIST = {"+919539854269", "919539854269"}
+
 
 # Global executor for background tasks
 executor = ThreadPoolExecutor(max_workers=4)
@@ -230,6 +233,11 @@ def root():
 def webhook():
     payload = request.json
     if not payload:
+        return "OK", 200
+
+    sender_id = payload.get("platformSenderId", "")
+    if sender_id in BLACKLIST:
+        logging.info(f"Blacklisted sender blocked: {sender_id}")
         return "OK", 200
     msg_id = payload.get('id')
     if msg_id and processed_messages.contains(msg_id):
