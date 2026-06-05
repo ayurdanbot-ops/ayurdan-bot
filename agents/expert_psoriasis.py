@@ -95,7 +95,7 @@ You specialize in Psoriasis."""
     if not contents:
         return "No content provided."
 
-    max_retries = 3
+    max_retries = 5
     retry_delay = 2
     for attempt in range(max_retries):
         try:
@@ -106,6 +106,6 @@ You specialize in Psoriasis."""
                 time.sleep(retry_delay)
                 retry_delay *= 2
             else:
-                return "I am receiving too many requests right now. Please give me a moment and try asking again!"
+                return ""
         except Exception as e:
-            return f"Error: {e}"
+            return ""
