@@ -143,7 +143,7 @@ def triage_user_intent(message_text):
     return "expert_rejuvenation"
 
 def call_gemini_with_retry(contents, system_prompt=None):
-    max_retries = 3
+    max_retries = 5
     retry_delay = 2
     for attempt in range(max_retries):
         try:
@@ -160,10 +160,10 @@ def call_gemini_with_retry(contents, system_prompt=None):
                 time.sleep(retry_delay)
                 retry_delay *= 2
             else:
-                return "I am receiving too many requests right now. Please give me a moment and try asking again!"
+                return ""
         except Exception as e:
             logging.error(f"Vertex AI Error: {e}")
-            return "I am just double-checking your details with our senior experts. Give me just a moment, and I will get right back to you!"
+            return ""
 
 
 def send_whatsapp_message(phone, msg):
@@ -251,11 +251,11 @@ def handle_message(payload):
         return
 
     if message_type == 'audio':
-        send_whatsapp_message(phone_number, "Listening to your message... 🎧")
+        pass
     elif message_type == 'image':
-        send_whatsapp_message(phone_number, "Analyzing your image, please wait... 🔍")
+        pass
     elif message_type == 'document':
-        send_whatsapp_message(phone_number, "Reading your document, please wait... 📄")
+        pass
 
     try:
         session = get_user_session(phone_number)
