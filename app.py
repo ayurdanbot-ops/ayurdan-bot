@@ -26,6 +26,11 @@ ZOKO_API_KEY = os.environ.get("ZOKO_API_KEY")
 import datetime
 from zoneinfo import ZoneInfo
 
+
+def get_ist_current_time_str() -> str:
+    tz = ZoneInfo("Asia/Kolkata")
+    return datetime.datetime.now(tz).strftime("%I:%M %p")
+
 def get_ist_time_greeting() -> str:
     tz = ZoneInfo("Asia/Kolkata")
     current_time = datetime.datetime.now(tz)
@@ -289,6 +294,8 @@ def handle_message(payload):
         current_system_prompt = f"{BASE_SYSTEM_PROMPT}\n\n*SPECIFIC EXPERT KNOWLEDGE*\n{expert_knowledge}\n\n*HOSPITAL INFO*\n{hospital_info}"
         fresh_greeting = get_ist_time_greeting()
         current_system_prompt = current_system_prompt.replace("{DYNAMIC_GREETING}", fresh_greeting)
+        current_time_str = get_ist_current_time_str()
+        current_system_prompt = current_system_prompt.replace("{CURRENT_TIME}", current_time_str)
 
         response_text = ""
         user_input_for_history = user_message
