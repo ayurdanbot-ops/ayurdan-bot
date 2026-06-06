@@ -151,8 +151,8 @@ def triage_user_intent(message_text):
     return "expert_rejuvenation"
 
 def call_gemini_with_retry(contents, system_prompt=None):
-    max_retries = 5
-    retry_delay = 2
+    max_retries = 3
+    retry_delay = 3
     for attempt in range(max_retries):
         try:
             if system_prompt:
@@ -163,20 +163,18 @@ def call_gemini_with_retry(contents, system_prompt=None):
             response = dynamic_model.generate_content(contents)
             text = response.text.strip()
             if text:
-                return text  # BREAK ON SUCCESS: return breaks the function and loop
-        except ResourceExhausted:
-            # RETRY ONLY ON 429
-            if attempt < max_retries - 1:
-                logging.warning(f"429 Resource Exhausted. Retrying in {retry_delay}s... (Attempt {attempt + 1})")
+                return text
+        except Exception as e:
+            error_str = str(e)
+            # FORCE THE 429 RETRY (BYPASS "NON-RETRYABLE")
+            if "429" in error_str or "ResourceExhausted" in error_str:
+                logging.warning(f"Forced retry on 429 error (Attempt {attempt + 1}/{max_retries}). Error: {error_str}")
                 time.sleep(retry_delay)
                 retry_delay *= 2
                 continue
             else:
-                logging.error("Max retries reached for 429 error.")
+                logging.error(f"Vertex AI Non-Retryable Error: {error_str}")
                 return ""
-        except Exception as e:
-            logging.error(f"Vertex AI Non-Retryable Error: {e}")
-            return ""  # Exit on any other error
     return ""
 
 
@@ -281,7 +279,9 @@ def handle_message(payload):
         history = session["history"]
         expert_id = session["assigned_expert"]
 
-        history_text = "\n".join([f"{'User' if h['role'] == 'user' else 'AI'}: {h['content']}" for h in history])
+        # Sliding window memory management: retain ONLY the last 10 messages (5 user/model pairs)
+        history_subset = history[-10:] if len(history) > 10 else history
+        history_text = "\n".join([f"{'User' if h['role'] == 'user' else 'AI'}: {h['content']}" for h in history_subset])
 
         if not expert_id:
             expert_id = triage_user_intent(user_message)
