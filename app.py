@@ -161,17 +161,23 @@ def call_gemini_with_retry(contents, system_prompt=None):
                 dynamic_model = model
 
             response = dynamic_model.generate_content(contents)
-            return response.text.strip()
+            text = response.text.strip()
+            if text:
+                return text  # BREAK ON SUCCESS: return breaks the function and loop
         except ResourceExhausted:
+            # RETRY ONLY ON 429
             if attempt < max_retries - 1:
-                logging.warning(f"Quota exceeded. Retrying in {retry_delay}s... (Attempt {attempt + 1})")
+                logging.warning(f"429 Resource Exhausted. Retrying in {retry_delay}s... (Attempt {attempt + 1})")
                 time.sleep(retry_delay)
                 retry_delay *= 2
+                continue
             else:
+                logging.error("Max retries reached for 429 error.")
                 return ""
         except Exception as e:
-            logging.error(f"Vertex AI Error: {e}")
-            return ""
+            logging.error(f"Vertex AI Non-Retryable Error: {e}")
+            return ""  # Exit on any other error
+    return ""
 
 
 def send_whatsapp_message(phone, msg):
