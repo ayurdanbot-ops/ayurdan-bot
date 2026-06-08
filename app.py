@@ -180,7 +180,8 @@ def call_gemini_with_retry(contents, system_prompt=None):
 
 def send_whatsapp_message(phone, msg):
     from zoko_client import send_zoko_message
-    send_zoko_message(phone, msg)
+    sanitized_msg = msg.replace("**", "*")
+    send_zoko_message(phone, sanitized_msg)
 
 def _download_media(file_url, suffix):
     headers = {'apikey': ZOKO_API_KEY}
