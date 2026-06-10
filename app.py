@@ -1,3 +1,4 @@
+import random
 import logging
 import traceback
 import sqlite3
@@ -151,9 +152,11 @@ def triage_user_intent(message_text):
     return "expert_rejuvenation"
 
 def call_gemini_with_retry(contents, system_prompt=None):
-    max_retries = 3
-    retry_delay = 3
-    for attempt in range(max_retries):
+    attempts = 0
+    max_attempts = 4
+    backoffs = [4, 8, 15]  # Seconds for attempts 1, 2, 3
+
+    while attempts < max_attempts:
         try:
             if system_prompt:
                 dynamic_model = GenerativeModel("gemini-3.5-flash", system_instruction=system_prompt)
@@ -163,18 +166,22 @@ def call_gemini_with_retry(contents, system_prompt=None):
             response = dynamic_model.generate_content(contents)
             text = response.text.strip()
             if text:
-                return text
-        except Exception as e:
-            error_str = str(e)
-            # FORCE THE 429 RETRY (BYPASS "NON-RETRYABLE")
-            if "429" in error_str or "ResourceExhausted" in error_str:
-                logging.warning(f"Forced retry on 429 error (Attempt {attempt + 1}/{max_retries}). Error: {error_str}")
-                time.sleep(retry_delay)
-                retry_delay *= 2
-                continue
+                return text  # ABSOLUTE BREAK ON SUCCESS
+        except ResourceExhausted:
+            attempts += 1
+            if attempts < max_attempts:
+                # EXPONENTIAL BACKOFF WITH JITTER
+                base_sleep = backoffs[attempts - 1]
+                jitter = random.uniform(0, 2.0)  # Random variation
+                sleep_time = base_sleep + jitter
+                logging.warning(f"429 Resource Exhausted. Attempt {attempts}/{max_attempts}. Retrying in {sleep_time:.2f}s...")
+                time.sleep(sleep_time)
             else:
-                logging.error(f"Vertex AI Non-Retryable Error: {error_str}")
-                return ""
+                logging.error("Max attempts reached for 429 error.")
+                break
+        except Exception as e:
+            logging.error(f"Vertex AI Non-Retryable Error: {e}")
+            break
     return ""
 
 
