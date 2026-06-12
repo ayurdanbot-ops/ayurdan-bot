@@ -162,18 +162,20 @@ def call_gemini_with_retry(contents, system_prompt=None):
             if text:
                 return text
             break
-        except exceptions.ResourceExhausted as e:
-            attempts += 1
-            if attempts >= max_attempts:
-                logging.error(f"Vertex AI 429 Quota Exhaustion. Max attempts reached: {e}")
-                break
+        except (exceptions.ResourceExhausted, Exception) as e:
+            err_msg = str(e)
+            if "429" in err_msg or "Resource exhausted" in err_msg:
+                attempts += 1
+                if attempts >= max_attempts:
+                    logging.error(f"Vertex AI 429 Quota Exhaustion. Max attempts reached: {err_msg}")
+                    break
 
-            sleep_time = (2 ** attempts) + random.uniform(0, 1) + 3
-            logging.warning(f"Caught Vertex AI 429 Quota Exhaustion. Manual retry {attempts}/{max_attempts} after {sleep_time:.2f}s...")
-            time.sleep(sleep_time)
-        except Exception as e:
-            logging.error(f"Vertex AI Non-Retryable Error: {e}")
-            break
+                sleep_time = (2 ** attempts) + random.uniform(0, 1) + 3
+                logging.info(f"DEBUG: Retry loop triggered. Caught Vertex AI 429. Manual retry {attempts}/{max_attempts} after {sleep_time:.2f}s...")
+                time.sleep(sleep_time)
+            else:
+                logging.error(f"Vertex AI Non-Retryable Error: {err_msg}")
+                break
     return ""
 
 

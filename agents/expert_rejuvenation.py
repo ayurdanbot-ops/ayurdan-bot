@@ -100,12 +100,15 @@ You specialize in Rejuvenation."""
         try:
             response = model.generate_content(contents, system_instruction=system_instruction)
             return response.text.strip()
-        except ResourceExhausted:
-            attempts += 1
-            if attempts >= max_attempts:
+        except (ResourceExhausted, Exception) as e:
+            err_msg = str(e)
+            if "429" in err_msg or "Resource exhausted" in err_msg:
+                attempts += 1
+                if attempts >= max_attempts:
+                    break
+                sleep_time = (2 ** attempts) + random.uniform(0, 1) + 3
+                print(f"DEBUG: Retry loop triggered in agent. Caught Vertex AI 429. Manual retry {attempts}/{max_attempts} after {sleep_time:.2f}s...")
+                time.sleep(sleep_time)
+            else:
                 break
-            sleep_time = (2 ** attempts) + random.uniform(0, 1) + 3
-            time.sleep(sleep_time)
-        except Exception:
-            break
     return ""
