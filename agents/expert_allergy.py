@@ -1,3 +1,4 @@
+import random
 from google.api_core.exceptions import ResourceExhausted
 import time
 import vertexai
@@ -93,17 +94,19 @@ You specialize in Allergy."""
     if not contents:
         return "No content provided."
 
-    max_retries = 5
-    retry_delay = 2
-    for attempt in range(max_retries):
+    attempts = 0
+    max_attempts = 4
+
+    while attempts < max_attempts:
         try:
             response = model.generate_content(contents, system_instruction=system_instruction)
             return response.text.strip()
         except ResourceExhausted:
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-                retry_delay *= 2
-            else:
-                return ""
-        except Exception as e:
-            return ""
+            attempts += 1
+            if attempts >= max_attempts:
+                break
+            sleep_time = (2 ** attempts) + random.uniform(0, 1) + 3
+            time.sleep(sleep_time)
+        except Exception:
+            break
+    return ""

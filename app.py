@@ -15,7 +15,7 @@ from flask import Flask, request, jsonify
 import vertexai
 from vertexai.generative_models import GenerativeModel, Part, SafetySetting
 from dotenv import load_dotenv
-from google.api_core.exceptions import ResourceExhausted
+from google.api_core import exceptions
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', force=True)
 logging.getLogger().setLevel(logging.INFO)
@@ -53,38 +53,9 @@ vertexai.init(
 
 model = GenerativeModel("gemini-3.5-flash")
 
-DB_PATH = 'ayur_care.db'
+DB_PATH = "ayur_care.db"
 
-class ProcessedMessagesCache:
-    def __init__(self, capacity):
-        self.cache = OrderedDict()
-        self.capacity = capacity
-
-    def contains(self, message_id):
-        if not message_id:
-            return False
-        if message_id in self.cache:
-            self.cache.move_to_end(message_id)
-            return True
-        return False
-
-    def add(self, message_id):
-        if not message_id:
-            return
-        self.cache[message_id] = True
-        self.cache.move_to_end(message_id)
-        if len(self.cache) > self.capacity:
-            self.cache.popitem(last=False)
-
-processed_messages = ProcessedMessagesCache(1000)
-# Webhook Blacklist for spammers
-BLACKLIST = {"+919539854269", "919539854269"}
-
-
-# Global executor for background tasks
-executor = ThreadPoolExecutor(max_workers=4)
-
-def db_init():
+def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
@@ -95,23 +66,47 @@ def db_init():
             last_active REAL
         )
     ''')
-    try:
-        cursor.execute('ALTER TABLE sessions ADD COLUMN assigned_expert TEXT DEFAULT NULL')
-    except sqlite3.OperationalError:
-        pass
     conn.commit()
     conn.close()
 
-db_init()
+init_db()
+
+# Thread-safe executor for webhooks
+executor = ThreadPoolExecutor(max_workers=10)
+
+class MessageDeduplicator:
+    def __init__(self, size=1000):
+        self.processed_ids = OrderedDict()
+        self.size = size
+        self.lock = threading.Lock()
+
+    def contains(self, msg_id):
+        with self.lock:
+            return msg_id in self.processed_ids
+
+    def add(self, msg_id):
+        with self.lock:
+            self.processed_ids[msg_id] = True
+            if len(self.processed_ids) > self.size:
+                self.processed_ids.popitem(last=False)
+
+processed_messages = MessageDeduplicator()
+
+BLACKLIST = os.environ.get("BLACKLIST_PHONES", "").split(",")
 
 def get_user_session(phone_number):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute('SELECT history, assigned_expert FROM sessions WHERE phone_number = ?', (phone_number,))
+    cursor.execute('SELECT history, assigned_expert, last_active FROM sessions WHERE phone_number = ?', (phone_number,))
     row = cursor.fetchone()
     conn.close()
+
     if row:
-        return {"history": json.loads(row[0]), "assigned_expert": row[1]}
+        history_json, assigned_expert, last_active = row
+        # 30 minute timeout
+        if time.time() - last_active < 1800:
+            return {"history": json.loads(history_json), "assigned_expert": assigned_expert}
+
     return {"history": [], "assigned_expert": None}
 
 def update_session(phone_number, history, assigned_expert):
@@ -154,7 +149,6 @@ def triage_user_intent(message_text):
 def call_gemini_with_retry(contents, system_prompt=None):
     attempts = 0
     max_attempts = 4
-    backoffs = [4, 8, 15]  # Seconds for attempts 1, 2, 3
 
     while attempts < max_attempts:
         try:
@@ -166,19 +160,17 @@ def call_gemini_with_retry(contents, system_prompt=None):
             response = dynamic_model.generate_content(contents)
             text = response.text.strip()
             if text:
-                return text  # ABSOLUTE BREAK ON SUCCESS
-        except ResourceExhausted:
+                return text
+            break
+        except exceptions.ResourceExhausted as e:
             attempts += 1
-            if attempts < max_attempts:
-                # EXPONENTIAL BACKOFF WITH JITTER
-                base_sleep = backoffs[attempts - 1]
-                jitter = random.uniform(0, 2.0)  # Random variation
-                sleep_time = base_sleep + jitter
-                logging.warning(f"429 Resource Exhausted. Attempt {attempts}/{max_attempts}. Retrying in {sleep_time:.2f}s...")
-                time.sleep(sleep_time)
-            else:
-                logging.error("Max attempts reached for 429 error.")
+            if attempts >= max_attempts:
+                logging.error(f"Vertex AI 429 Quota Exhaustion. Max attempts reached: {e}")
                 break
+
+            sleep_time = (2 ** attempts) + random.uniform(0, 1) + 3
+            logging.warning(f"Caught Vertex AI 429 Quota Exhaustion. Manual retry {attempts}/{max_attempts} after {sleep_time:.2f}s...")
+            time.sleep(sleep_time)
         except Exception as e:
             logging.error(f"Vertex AI Non-Retryable Error: {e}")
             break
