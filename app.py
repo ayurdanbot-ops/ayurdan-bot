@@ -1,7 +1,6 @@
 import random
 import logging
 import traceback
-import sqlite3
 import os
 import json
 import threading
@@ -11,6 +10,8 @@ import time
 import tempfile
 import importlib
 import requests
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from flask import Flask, request, jsonify
 import vertexai
 from vertexai.generative_models import GenerativeModel, Part, SafetySetting
@@ -23,6 +24,7 @@ logging.getLogger().setLevel(logging.INFO)
 load_dotenv()
 
 ZOKO_API_KEY = os.environ.get("ZOKO_API_KEY")
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 import datetime
 from zoneinfo import ZoneInfo
@@ -53,23 +55,40 @@ vertexai.init(
 
 model = GenerativeModel("gemini-3.5-flash")
 
-DB_PATH = "ayur_care.db"
+def get_db_connection():
+    return psycopg2.connect(DATABASE_URL)
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS sessions (
             phone_number TEXT PRIMARY KEY,
             history TEXT,
             assigned_expert TEXT,
-            last_active REAL
+            intake_status TEXT DEFAULT 'PENDING',
+            last_active DOUBLE PRECISION
         )
     ''')
     conn.commit()
     conn.close()
 
 init_db()
+
+def prune_stale_sessions():
+    try:
+        # 12-hour threshold
+        threshold = time.time() - (12 * 3600)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM sessions WHERE last_active < %s', (threshold,))
+        deleted_count = cursor.rowcount
+        conn.commit()
+        conn.close()
+        if deleted_count > 0:
+            logging.info(f"Pruned {deleted_count} stale sessions older than 12 hours.")
+    except Exception as e:
+        logging.error(f"Database Pruning Error: {e}")
 
 # Thread-safe executor for webhooks
 executor = ThreadPoolExecutor(max_workers=10)
@@ -95,33 +114,41 @@ processed_messages = MessageDeduplicator()
 BLACKLIST = os.environ.get("BLACKLIST_PHONES", "").split(",")
 
 def get_user_session(phone_number):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('SELECT history, assigned_expert, last_active FROM sessions WHERE phone_number = ?', (phone_number,))
-    row = cursor.fetchone()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute('SELECT history, assigned_expert, intake_status, last_active FROM sessions WHERE phone_number = %s', (phone_number,))
+        row = cursor.fetchone()
+        conn.close()
 
-    if row:
-        history_json, assigned_expert, last_active = row
-        # 30 minute timeout
-        if time.time() - last_active < 1800:
-            return {"history": json.loads(history_json), "assigned_expert": assigned_expert}
+        if row:
+            return {
+                "history": json.loads(row["history"]),
+                "assigned_expert": row["assigned_expert"],
+                "intake_status": row["intake_status"]
+            }
+    except Exception as e:
+        logging.error(f"Database Read Error: {e}")
 
-    return {"history": [], "assigned_expert": None}
+    return {"history": [], "assigned_expert": None, "intake_status": "PENDING"}
 
-def update_session(phone_number, history, assigned_expert):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO sessions (phone_number, history, assigned_expert, last_active)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT(phone_number) DO UPDATE SET
-            history = excluded.history,
-            assigned_expert = excluded.assigned_expert,
-            last_active = excluded.last_active
-    ''', (phone_number, json.dumps(history), assigned_expert, time.time()))
-    conn.commit()
-    conn.close()
+def update_session(phone_number, history, assigned_expert, intake_status):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO sessions (phone_number, history, assigned_expert, intake_status, last_active)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT(phone_number) DO UPDATE SET
+                history = EXCLUDED.history,
+                assigned_expert = EXCLUDED.assigned_expert,
+                intake_status = EXCLUDED.intake_status,
+                last_active = EXCLUDED.last_active
+        ''', (phone_number, json.dumps(history), assigned_expert, intake_status, time.time()))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logging.error(f"Database Write Error: {e}")
 
 def triage_user_intent(message_text):
     text_lower = message_text.lower()
@@ -269,19 +296,23 @@ def handle_message(payload):
     if not phone_number:
         return
 
-    if message_type == 'audio':
-        pass
-    elif message_type == 'image':
-        pass
-    elif message_type == 'document':
-        pass
-
     try:
         session = get_user_session(phone_number)
         history = session["history"]
         expert_id = session["assigned_expert"]
+        intake_status = session["intake_status"]
 
-        # Sliding window memory management: retain ONLY the last 10 messages (5 user/model pairs)
+        # Welcome back intelligence
+        if intake_status == 'COMPLETE':
+            if not history:
+                welcome_msg = "Welcome back to Ayurdan Ayurveda Hospital! How can we assist you with your health or appointment updates today?"
+                send_whatsapp_message(phone_number, welcome_msg)
+                history.append({"role": "model", "content": welcome_msg})
+                update_session(phone_number, history, expert_id, intake_status)
+                prune_stale_sessions()
+                return
+
+        # Sliding window memory management
         history_subset = history[-10:] if len(history) > 10 else history
         history_text = "\n".join([f"{'User' if h['role'] == 'user' else 'AI'}: {h['content']}" for h in history_subset])
 
@@ -300,6 +331,10 @@ def handle_message(payload):
             hospital_info = ""
 
         current_system_prompt = f"{BASE_SYSTEM_PROMPT}\n\n*SPECIFIC EXPERT KNOWLEDGE*\n{expert_knowledge}\n\n*HOSPITAL INFO*\n{hospital_info}"
+
+        if intake_status == 'COMPLETE':
+            current_system_prompt += "\n\n*USER STATUS*: This user has already completed their intake. Do NOT ask for name, age, or location. Acknowledge them as a returning patient."
+
         fresh_greeting = get_ist_time_greeting()
         current_system_prompt = current_system_prompt.replace("{DYNAMIC_GREETING}", fresh_greeting)
         current_time_str = get_ist_current_time_str()
@@ -323,6 +358,10 @@ def handle_message(payload):
         if response_text:
              history.append({"role": "model", "content": response_text})
 
+        if intake_status != 'COMPLETE':
+            if any(kw in response_text.lower() for kw in ["how long have you", "symptoms", "examination", "consultation"]):
+                 intake_status = 'COMPLETE'
+
         if len(history) > 20:
             history = history[-20:]
 
@@ -330,9 +369,12 @@ def handle_message(payload):
              if "goodbye" in response_text.lower() or "വിളിക്കാം" in response_text.lower() or "[HANDOVER]" in response_text:
                  expert_id = None
 
-        update_session(phone_number, history, expert_id)
+        update_session(phone_number, history, expert_id, intake_status)
         if response_text and isinstance(response_text, str) and response_text.strip():
             send_whatsapp_message(phone_number, response_text.strip())
+
+        # Rolling TTL cleanup
+        prune_stale_sessions()
 
     except Exception as e:
         logging.error("Pipeline Error", exc_info=True)
