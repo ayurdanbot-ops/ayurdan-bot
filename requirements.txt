@@ -4,4 +4,3 @@ python-dotenv
 pydantic
 flask
 gunicorn
-psycopg2-binary
