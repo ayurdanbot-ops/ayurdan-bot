@@ -92,7 +92,7 @@ class MessageDeduplicator:
 
 processed_messages = MessageDeduplicator()
 
-BLACKLIST = os.environ.get("BLACKLIST_PHONES", "").split(",")
+BLACKLIST = [p for p in os.environ.get("BLACKLIST_PHONES", "").split(",") if p] + ["+919961252698"]
 
 def get_user_session(phone_number):
     conn = sqlite3.connect(DB_PATH)
