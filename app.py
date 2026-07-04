@@ -11,11 +11,16 @@ import time
 import tempfile
 import importlib
 import requests
+import datetime
+import gc
+from zoneinfo import ZoneInfo
 from flask import Flask, request, jsonify
 import vertexai
 from vertexai.generative_models import GenerativeModel, Part, SafetySetting
 from dotenv import load_dotenv
 from google.api_core import exceptions
+from zoko_client import send_zoko_message
+from system_prompt import SYSTEM_PROMPT as BASE_SYSTEM_PROMPT
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', force=True)
 logging.getLogger().setLevel(logging.INFO)
@@ -23,10 +28,6 @@ logging.getLogger().setLevel(logging.INFO)
 load_dotenv()
 
 ZOKO_API_KEY = os.environ.get("ZOKO_API_KEY")
-
-import datetime
-from zoneinfo import ZoneInfo
-
 
 def get_ist_current_time_str() -> str:
     tz = ZoneInfo("Asia/Kolkata")
@@ -51,7 +52,9 @@ vertexai.init(
     location="global"
 )
 
-model = GenerativeModel("gemini-3.5-flash")
+# Using the model name found in the original codebase
+MODEL_NAME = "gemini-3.5-flash"
+model = GenerativeModel(MODEL_NAME)
 
 DB_PATH = "ayur_care.db"
 
@@ -144,6 +147,18 @@ def triage_user_intent(message_text):
         for word in words:
             if word in text_lower:
                 return expert
+
+    # LLM Fallback for Triage
+    try:
+        experts_list = list(keywords.keys())
+        prompt = f"Categorize this user message into one of these expert categories: {', '.join(experts_list)}. Return ONLY the category name. Message: '{message_text}'"
+        result = call_gemini_with_retry([prompt])
+        if result in experts_list:
+            logging.info(f"LLM Triage success: {result}")
+            return result
+    except Exception as e:
+        logging.error(f"LLM Triage failed: {e}")
+
     return "expert_rejuvenation"
 
 def call_gemini_with_retry(contents, system_prompt=None):
@@ -153,7 +168,7 @@ def call_gemini_with_retry(contents, system_prompt=None):
     while attempts < max_attempts:
         try:
             if system_prompt:
-                dynamic_model = GenerativeModel("gemini-3.5-flash", system_instruction=system_prompt)
+                dynamic_model = GenerativeModel(MODEL_NAME, system_instruction=system_prompt)
             else:
                 dynamic_model = model
 
@@ -178,49 +193,44 @@ def call_gemini_with_retry(contents, system_prompt=None):
                 break
     return ""
 
-
 def send_whatsapp_message(phone, msg):
-    from zoko_client import send_zoko_message
     sanitized_msg = msg.replace("**", "*")
     send_zoko_message(phone, sanitized_msg)
 
-def _download_media(file_url, suffix):
+def _download_media(file_url):
     headers = {'apikey': ZOKO_API_KEY}
     r = requests.get(file_url, stream=True, headers=headers)
     r.raise_for_status()
+
+    content_type = r.headers.get('Content-Type', '')
+    suffix = ".bin"
+    if 'audio' in content_type: suffix = ".ogg"
+    elif 'image/png' in content_type: suffix = ".png"
+    elif 'image/jpeg' in content_type: suffix = ".jpg"
+    elif 'pdf' in content_type: suffix = ".pdf"
+
     tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
     for chunk in r.iter_content(chunk_size=8192):
         tmp.write(chunk)
     tmp.close()
-    return tmp.name
+    return tmp.name, content_type
 
 def process_media(file_url, msg_type, system_prompt, history_text, expert_id, text_body=""):
     local_filename = None
     try:
-        suffix = ".ogg"
-        mime = 'audio/ogg'
-        if msg_type == "image":
-            suffix = ".jpg"
-            if "png" in file_url.lower(): suffix = ".png"
-            elif "webp" in file_url.lower(): suffix = ".webp"
-            mime = 'image/png' if suffix == '.png' else 'image/webp' if suffix == '.webp' else 'image/jpeg'
-        elif msg_type == "document":
-            suffix = ".pdf"
-            mime = 'application/pdf'
-
-        local_filename = _download_media(file_url, suffix)
+        local_filename, detected_mime = _download_media(file_url)
 
         with open(local_filename, "rb") as f:
             raw_media_bytes = f.read()
 
-        media_part = Part.from_data(data=raw_media_bytes, mime_type=mime)
+        media_part = Part.from_data(data=raw_media_bytes, mime_type=detected_mime)
 
         contents = []
         if history_text:
             contents.append(f"Chat History:\n{history_text}")
 
         part_type = 'audio' if msg_type == 'audio' else 'image' if msg_type == 'image' else 'document'
-        prompt_t = text_body if text_body else f"Please analyze this {part_type}."
+        prompt_t = text_body if text_body else f"Please analyze this {part_type} following the clinical safety guidelines."
 
         contents.append(media_part)
         contents.append(prompt_t)
@@ -269,27 +279,19 @@ def handle_message(payload):
     if not phone_number:
         return
 
-    if message_type == 'audio':
-        pass
-    elif message_type == 'image':
-        pass
-    elif message_type == 'document':
-        pass
-
     try:
         session = get_user_session(phone_number)
         history = session["history"]
         expert_id = session["assigned_expert"]
 
-        # Sliding window memory management: retain ONLY the last 10 messages (5 user/model pairs)
-        history_subset = history[-10:] if len(history) > 10 else history
+        # Sliding window memory management: retain ONLY the last 16 messages
+        history_subset = history[-16:] if len(history) > 16 else history
         history_text = "\n".join([f"{'User' if h['role'] == 'user' else 'AI'}: {h['content']}" for h in history_subset])
 
         if not expert_id:
             expert_id = triage_user_intent(user_message)
             logging.info(f"Routed user to {expert_id}")
 
-        from system_prompt import SYSTEM_PROMPT as BASE_SYSTEM_PROMPT
         try:
             expert_module = importlib.import_module(f"agents.{expert_id}")
             expert_knowledge = getattr(expert_module, "EXPERT_KNOWLEDGE", "")
@@ -323,8 +325,8 @@ def handle_message(payload):
         if response_text:
              history.append({"role": "model", "content": response_text})
 
-        if len(history) > 20:
-            history = history[-20:]
+        if len(history) > 30:
+            history = history[-30:]
 
         if any(word in response_text.lower() for word in ["goodbye", "നന്ദി", "bye", "take care"]):
              if "goodbye" in response_text.lower() or "വിളിക്കാം" in response_text.lower() or "[HANDOVER]" in response_text:
@@ -339,7 +341,6 @@ def handle_message(payload):
         fallback_msg = "ക്ഷമിക്കണം, സാങ്കേതിക തകരാർ കാരണം ഈ ഫയൽ പരിശോധിക്കാൻ കഴിഞ്ഞില്ല. ദയവായി നിങ്ങളുടെ ബുദ്ധിമുട്ടുകൾ ടൈപ്പ് ചെയ്ത് അയക്കാമോ?"
         send_whatsapp_message(phone_number, fallback_msg)
 
-    import gc
     gc.collect()
     return
 
