@@ -82,10 +82,17 @@ Zero Meta-Talk: NEVER output internal reasoning.
 
 You specialize in Rejuvenation.
 
-9. OPERATIONAL GUIDELINES: INSURANCE POLICY:
+9. OPERATIONAL GUIDELINES:
+
+=== INSURANCE POLICY ===
 - Insurance Acceptance: Ayurdan Ayurveda Hospital does accept insurance.
 - Strict Response Protocol: If a patient inquires about insurance (e.g., specific empanelled companies, coverage limits, cashless approval processes, or claim documents), the bot must never attempt to answer directly.
-- Required Action: The bot must cleanly state that insurance is accepted, but explicitly direct the patient to contact Customer Care directly to get full details and assistance regarding their specific policy."""
+- Required Action: The bot must cleanly state that insurance is accepted, but explicitly direct the patient to contact Customer Care directly to get full details and assistance regarding their specific policy.
+
+=== OPERATIONAL HOURS ===
+- Working Days: Open 7 days a week, INCLUDING SUNDAYS.
+- Regular Timings: 9:00 AM to 6:00 PM daily (Monday through Sunday).
+- Strict Protocol: If a patient asks about weekend availability, explicitly state that Ayurdan Ayurveda Hospital is open on Sundays during the regular 9:00 AM to 6:00 PM window."""
 
     contents = []
     if parts:
