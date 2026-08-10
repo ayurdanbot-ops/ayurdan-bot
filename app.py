@@ -13,7 +13,7 @@ import importlib
 import requests
 from flask import Flask, request, jsonify
 import vertexai
-from vertexai.generative_models import GenerativeModel, Part, SafetySetting
+from vertexai.generative_models import GenerativeModel, Part, SafetySetting, Content
 from dotenv import load_dotenv
 from google.api_core import exceptions
 
@@ -42,6 +42,29 @@ def get_ist_time_greeting() -> str:
         return "Good afternoon"
     else:
         return "Good evening"
+
+
+def build_gemini_contents(history_subset, current_user_parts):
+    contents = []
+    for h in history_subset:
+        role = h.get('role')
+        if role not in ['user', 'model']:
+            continue
+        # Multi-turn history must start with user
+        if not contents and role == 'model':
+            continue
+
+        part = Part.from_text(h['content'])
+        if contents and contents[-1].role == role:
+            contents[-1].parts.append(part)
+        else:
+            contents.append(Content(role=role, parts=[part]))
+
+    if contents and contents[-1].role == 'user':
+        contents[-1].parts.extend(current_user_parts)
+    else:
+        contents.append(Content(role='user', parts=current_user_parts))
+    return contents
 
 app = Flask(__name__)
 
@@ -194,7 +217,7 @@ def _download_media(file_url, suffix):
     tmp.close()
     return tmp.name
 
-def process_media(file_url, msg_type, system_prompt, history_text, expert_id, text_body=""):
+def process_media(file_url, msg_type, system_prompt, history_subset, expert_id, text_body=""):
     local_filename = None
     try:
         suffix = ".ogg"
@@ -215,15 +238,11 @@ def process_media(file_url, msg_type, system_prompt, history_text, expert_id, te
 
         media_part = Part.from_data(data=raw_media_bytes, mime_type=mime)
 
-        contents = []
-        if history_text:
-            contents.append(f"Chat History:\n{history_text}")
-
         part_type = 'audio' if msg_type == 'audio' else 'image' if msg_type == 'image' else 'document'
         prompt_t = text_body if text_body else f"Please analyze this {part_type}."
 
-        contents.append(media_part)
-        contents.append(prompt_t)
+        current_user_parts = [media_part, Part.from_text(prompt_t)]
+        contents = build_gemini_contents(history_subset, current_user_parts)
 
         return call_gemini_with_retry(contents, system_prompt)
 
@@ -309,13 +328,11 @@ def handle_message(payload):
         user_input_for_history = user_message
 
         if message_type in ["audio", "image", "document"] and media_url:
-            response_text = process_media(media_url, message_type, current_system_prompt, history_text, expert_id, user_message)
+            response_text = process_media(media_url, message_type, current_system_prompt, history_subset, expert_id, user_message)
             if not user_input_for_history: user_input_for_history = f"[Sent a {message_type}]"
         elif user_message:
-            contents = []
-            if history_text:
-                contents.append(f"Chat History:\n{history_text}")
-            contents.append(f"Current User Input: {user_message}")
+            current_user_parts = [Part.from_text(user_message)]
+            contents = build_gemini_contents(history_subset, current_user_parts)
             response_text = call_gemini_with_retry(contents, current_system_prompt)
 
         if user_input_for_history:
