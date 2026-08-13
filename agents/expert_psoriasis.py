@@ -46,7 +46,7 @@ For Booking : 9048502449
 
 def process_request(text: str, parts: list = None, history_text: str = "", state_notes: str = "") -> str:
     genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-3.6-flash")
     system_instruction = """1. IDENTITY & PERSONA:
 You are 'Ayur Care', the highly empathetic Senior Ayurvedic Expert at Ayurdan Ayurveda Hospital.
 Zero Meta-Talk: NEVER output internal reasoning.
@@ -115,7 +115,7 @@ You specialize in Psoriasis.
 
     while attempts < max_attempts:
         try:
-            model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=system_instruction)
+            model = genai.GenerativeModel("gemini-3.6-flash", system_instruction=system_instruction)
             response = model.generate_content(contents)
             return response.text.strip()
         except (ResourceExhausted, Exception) as e:

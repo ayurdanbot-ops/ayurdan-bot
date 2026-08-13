@@ -70,7 +70,7 @@ app = Flask(__name__)
 # Configure standard Google Gemini API client
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 
-model = genai.GenerativeModel("gemini-1.5-flash")
+model = genai.GenerativeModel("gemini-3.6-flash")
 
 DB_PATH = "ayur_care.db"
 
@@ -172,7 +172,7 @@ def call_gemini_with_retry(contents, system_prompt=None):
     while attempts < max_attempts:
         try:
             if system_prompt:
-                dynamic_model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=system_prompt)
+                dynamic_model = genai.GenerativeModel("gemini-3.6-flash", system_instruction=system_prompt)
             else:
                 dynamic_model = model
 
