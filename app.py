@@ -12,8 +12,7 @@ import tempfile
 import importlib
 import requests
 from flask import Flask, request, jsonify
-import vertexai
-from vertexai.generative_models import GenerativeModel, Part, SafetySetting, Content
+import google.generativeai as genai
 from dotenv import load_dotenv
 from google.api_core import exceptions
 
@@ -54,27 +53,24 @@ def build_gemini_contents(history_subset, current_user_parts):
         if not contents and role == 'model':
             continue
 
-        part = Part.from_text(h['content'])
-        if contents and contents[-1].role == role:
-            contents[-1].parts.append(part)
+        part = h['content']
+        if contents and contents[-1]['role'] == role:
+            contents[-1]['parts'].append(part)
         else:
-            contents.append(Content(role=role, parts=[part]))
+            contents.append({'role': role, 'parts': [part]})
 
-    if contents and contents[-1].role == 'user':
-        contents[-1].parts.extend(current_user_parts)
+    if contents and contents[-1]['role'] == 'user':
+        contents[-1]['parts'].extend(current_user_parts)
     else:
-        contents.append(Content(role='user', parts=current_user_parts))
+        contents.append({'role': 'user', 'parts': current_user_parts})
     return contents
 
 app = Flask(__name__)
 
-# Initialize Vertex AI
-vertexai.init(
-    project=os.environ.get("GCP_PROJECT_ID"),
-    location="global"
-)
+# Configure standard Google Gemini API client
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 
-model = GenerativeModel("gemini-3.5-flash")
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 DB_PATH = "ayur_care.db"
 
@@ -176,7 +172,7 @@ def call_gemini_with_retry(contents, system_prompt=None):
     while attempts < max_attempts:
         try:
             if system_prompt:
-                dynamic_model = GenerativeModel("gemini-3.5-flash", system_instruction=system_prompt)
+                dynamic_model = genai.GenerativeModel("gemini-1.5-flash", system_instruction=system_prompt)
             else:
                 dynamic_model = model
 
@@ -190,14 +186,14 @@ def call_gemini_with_retry(contents, system_prompt=None):
             if "429" in err_msg or "Resource exhausted" in err_msg:
                 attempts += 1
                 if attempts >= max_attempts:
-                    logging.error(f"Vertex AI 429 Quota Exhaustion. Max attempts reached: {err_msg}")
+                    logging.error(f"Gemini API 429 Quota Exhaustion. Max attempts reached: {err_msg}")
                     break
 
                 sleep_time = (2 ** attempts) + random.uniform(0, 1) + 3
-                logging.info(f"DEBUG: Retry loop triggered. Caught Vertex AI 429. Manual retry {attempts}/{max_attempts} after {sleep_time:.2f}s...")
+                logging.info(f"DEBUG: Retry loop triggered. Caught Gemini API 429. Manual retry {attempts}/{max_attempts} after {sleep_time:.2f}s...")
                 time.sleep(sleep_time)
             else:
-                logging.error(f"Vertex AI Non-Retryable Error: {err_msg}")
+                logging.error(f"Gemini API Non-Retryable Error: {err_msg}")
                 break
     return ""
 
@@ -236,12 +232,12 @@ def process_media(file_url, msg_type, system_prompt, history_subset, expert_id, 
         with open(local_filename, "rb") as f:
             raw_media_bytes = f.read()
 
-        media_part = Part.from_data(data=raw_media_bytes, mime_type=mime)
+        media_part = {'mime_type': mime, 'data': raw_media_bytes}
 
         part_type = 'audio' if msg_type == 'audio' else 'image' if msg_type == 'image' else 'document'
         prompt_t = text_body if text_body else f"Please analyze this {part_type}."
 
-        current_user_parts = [media_part, Part.from_text(prompt_t)]
+        current_user_parts = [media_part, prompt_t]
         contents = build_gemini_contents(history_subset, current_user_parts)
 
         return call_gemini_with_retry(contents, system_prompt)
@@ -331,7 +327,7 @@ def handle_message(payload):
             response_text = process_media(media_url, message_type, current_system_prompt, history_subset, expert_id, user_message)
             if not user_input_for_history: user_input_for_history = f"[Sent a {message_type}]"
         elif user_message:
-            current_user_parts = [Part.from_text(user_message)]
+            current_user_parts = [user_message]
             contents = build_gemini_contents(history_subset, current_user_parts)
             response_text = call_gemini_with_retry(contents, current_system_prompt)
 
