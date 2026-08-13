@@ -1,8 +1,9 @@
+import os
 import random
 from google.api_core.exceptions import ResourceExhausted
 import time
-import vertexai
-from vertexai.generative_models import GenerativeModel, Part
+
+import google.generativeai as genai
 
 EXPERT_KNOWLEDGE = """
 AYURVEDIC KNOWLEDGE: REJUVENATION (Rasayana)
@@ -41,7 +42,8 @@ For Booking : 9048502449
 """
 
 def process_request(text: str, parts: list = None, history_text: str = "", state_notes: str = "") -> str:
-    model = GenerativeModel("gemini-3.5-flash")
+    genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+    model = genai.GenerativeModel("gemini-3.6-flash")
     system_instruction = """1. IDENTITY & PERSONA:
 You are 'Ayur Care', the highly empathetic Senior Ayurvedic Expert at Ayurdan Ayurveda Hospital.
 Zero Meta-Talk: NEVER output internal reasoning.
@@ -110,7 +112,8 @@ You specialize in Rejuvenation.
 
     while attempts < max_attempts:
         try:
-            response = model.generate_content(contents, system_instruction=system_instruction)
+            model = genai.GenerativeModel("gemini-3.6-flash", system_instruction=system_instruction)
+            response = model.generate_content(contents)
             return response.text.strip()
         except (ResourceExhausted, Exception) as e:
             err_msg = str(e)
