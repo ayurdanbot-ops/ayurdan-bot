@@ -1,0 +1,17 @@
+[
+  {
+    "event_name": "Onam Festival",
+    "greeting_window": {
+      "start": "2026-08-25",
+      "end": "2026-08-26",
+      "message": "ഏവർക്കും ഹൃദയം നിറഞ്ഞ ഓണാശംസകൾ! 🌸",
+      "trigger": "initial_greeting"
+    },
+    "closure_announcement_window": {
+      "start": "2026-08-24",
+      "end": "2026-08-28",
+      "message": "ഓണം അവധി പ്രമാണിച്ച് ഓഗസ്റ്റ് 24 മുതൽ 28 വരെ ഞങ്ങളുടെ ആശുപത്രിയിൽ OP, IP സേവനങ്ങൾ ലഭ്യമായിരിക്കുന്നതല്ല. ഓഗസ്റ്റ് 29 മുതൽ ആശുപത്രി പൂർണ്ണ സജ്ജമായി പ്രവർത്തിക്കുന്നതാണ്. ദയവായി സഹകരിക്കുക.",
+      "trigger": "appointment_or_visit_inquiry"
+    }
+  }
+]

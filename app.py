@@ -43,6 +43,45 @@ def get_ist_time_greeting() -> str:
     else:
         return "Good evening"
 
+def get_active_event_instructions() -> str:
+    tz = ZoneInfo("Asia/Kolkata")
+    today_str = datetime.datetime.now(tz).strftime("%Y-%m-%d")
+    events_file = os.path.join(os.path.dirname(__file__), "events.json")
+    if not os.path.exists(events_file):
+        return ""
+
+    try:
+        with open(events_file, "r", encoding="utf-8") as f:
+            events = json.load(f)
+    except Exception as e:
+        logging.error(f"Error loading events.json: {e}")
+        return ""
+
+    greeting_msg = None
+    closure_msg = None
+
+    for event in events:
+        gw = event.get("greeting_window", {})
+        if gw and gw.get("start") and gw.get("end") and gw.get("message"):
+            if gw["start"] <= today_str <= gw["end"]:
+                greeting_msg = gw["message"]
+
+        cw = event.get("closure_announcement_window", {})
+        if cw and cw.get("start") and cw.get("end") and cw.get("message"):
+            if cw["start"] <= today_str <= cw["end"]:
+                closure_msg = cw["message"]
+
+    if not greeting_msg and not closure_msg:
+        return ""
+
+    instructions = ["[ACTIVE EVENT INSTRUCTIONS]"]
+    if greeting_msg:
+        instructions.append(f'- If "ACTIVE GREETING" is present: Include this festive greeting naturally in your INITIAL welcome message: "{greeting_msg}"')
+    if closure_msg:
+        instructions.append(f'- If "ACTIVE CLOSURE ANNOUNCEMENT" is present: If the user asks about booking an appointment, visiting the hospital, or OP/IP timings, you MUST include this notice: "{closure_msg}"')
+
+    return "\n".join(instructions)
+
 
 def build_gemini_contents(history_subset, current_user_parts):
     contents = []
@@ -323,6 +362,9 @@ def handle_message(payload):
         current_system_prompt = current_system_prompt.replace("{DYNAMIC_GREETING}", fresh_greeting)
         current_time_str = get_ist_current_time_str()
         current_system_prompt = current_system_prompt.replace("{CURRENT_TIME}", current_time_str)
+        event_instructions = get_active_event_instructions()
+        if event_instructions:
+            current_system_prompt += f"\n\n{event_instructions}"
 
         response_text = ""
         user_input_for_history = user_message
