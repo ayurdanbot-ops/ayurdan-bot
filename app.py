@@ -57,30 +57,32 @@ def get_active_event_instructions() -> str:
         logging.error(f"Error loading events.json: {e}")
         return ""
 
-    greeting_msg = None
-    closure_msg = None
+    upcoming_lines = []
 
     for event in events:
+        event_name = event.get("event_name", "Event")
         gw = event.get("greeting_window", {})
         if gw and gw.get("start") and gw.get("end") and gw.get("message"):
-            if gw["start"] <= today_str <= gw["end"]:
-                greeting_msg = gw["message"]
+            if gw["end"] >= today_str:
+                status = "ACTIVE TODAY" if (gw["start"] <= today_str <= gw["end"]) else "UPCOMING"
+                upcoming_lines.append(
+                    f'- Event: {event_name} [{status}] (Festive Greeting Window: {gw["start"]} to {gw["end"]})\n'
+                    f'  - Festive Greeting Message: "{gw["message"]}"'
+                )
 
         cw = event.get("closure_announcement_window", {})
         if cw and cw.get("start") and cw.get("end") and cw.get("message"):
-            if cw["start"] <= today_str <= cw["end"]:
-                closure_msg = cw["message"]
+            if cw["end"] >= today_str:
+                status = "ACTIVE TODAY" if (cw["start"] <= today_str <= cw["end"]) else "UPCOMING"
+                upcoming_lines.append(
+                    f'- Event: {event_name} [{status}] (Closure Announcement Window: {cw["start"]} to {cw["end"]})\n'
+                    f'  - Closure Announcement Notice: "{cw["message"]}"'
+                )
 
-    if not greeting_msg and not closure_msg:
+    if not upcoming_lines:
         return ""
 
-    instructions = ["[ACTIVE EVENT INSTRUCTIONS]"]
-    if greeting_msg:
-        instructions.append(f'- If "ACTIVE GREETING" is present: Include this festive greeting naturally in your INITIAL welcome message: "{greeting_msg}"')
-    if closure_msg:
-        instructions.append(f'- If "ACTIVE CLOSURE ANNOUNCEMENT" is present: If the user asks about booking an appointment, visiting the hospital, or OP/IP timings, you MUST include this notice: "{closure_msg}"')
-
-    return "\n".join(instructions)
+    return "[UPCOMING AND ACTIVE HOSPITAL EVENTS]\n" + "\n".join(upcoming_lines)
 
 
 def build_gemini_contents(history_subset, current_user_parts):
