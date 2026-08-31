@@ -24,18 +24,17 @@ load_dotenv()
 
 ZOKO_API_KEY = os.environ.get("ZOKO_API_KEY")
 
-import datetime
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 
 def get_ist_current_time_str() -> str:
     tz = ZoneInfo("Asia/Kolkata")
-    return datetime.datetime.now(tz).strftime("%I:%M %p")
+    return datetime.now(tz).strftime("%I:%M %p")
 
 def get_ist_time_greeting() -> str:
     tz = ZoneInfo("Asia/Kolkata")
-    current_time = datetime.datetime.now(tz)
+    current_time = datetime.now(tz)
     hour = current_time.hour
     if 0 <= hour < 12:
         return "Good morning"
@@ -46,7 +45,7 @@ def get_ist_time_greeting() -> str:
 
 def get_active_event_instructions() -> str:
     tz = ZoneInfo("Asia/Kolkata")
-    today_str = datetime.datetime.now(tz).strftime("%Y-%m-%d")
+    today_str = datetime.now(tz).strftime("%Y-%m-%d")
     events_file = os.path.join(os.path.dirname(__file__), "events.json")
     if not os.path.exists(events_file):
         return ""
