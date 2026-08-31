@@ -25,6 +25,7 @@ load_dotenv()
 ZOKO_API_KEY = os.environ.get("ZOKO_API_KEY")
 
 import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 
@@ -109,6 +110,9 @@ def build_gemini_contents(history_subset, current_user_parts):
 
 app = Flask(__name__)
 
+# Global in-memory dictionary to store active chat sessions
+user_sessions = {}
+
 # Initialize Vertex AI
 vertexai.init(
     project=os.environ.get("GCP_PROJECT_ID"),
@@ -159,21 +163,24 @@ processed_messages = MessageDeduplicator()
 BLACKLIST = [p for p in os.environ.get("BLACKLIST_PHONES", "").split(",") if p] + ["+919961252698"]
 
 def get_user_session(phone_number):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('SELECT history, assigned_expert, last_active FROM sessions WHERE phone_number = ?', (phone_number,))
-    row = cursor.fetchone()
-    conn.close()
+    if phone_number in user_sessions:
+        session = user_sessions[phone_number]
+        last_active = session.get("last_active")
+        if last_active and (datetime.now() - last_active > timedelta(hours=48)):
+            del user_sessions[phone_number]
+        else:
+            return session
 
-    if row:
-        history_json, assigned_expert, last_active = row
-        # 30 minute timeout
-        if time.time() - last_active < 1800:
-            return {"history": json.loads(history_json), "assigned_expert": assigned_expert}
-
-    return {"history": [], "assigned_expert": None}
+    new_session = {"history": [], "assigned_expert": None, "last_active": datetime.now()}
+    user_sessions[phone_number] = new_session
+    return new_session
 
 def update_session(phone_number, history, assigned_expert):
+    user_sessions[phone_number] = {
+        "history": history,
+        "assigned_expert": assigned_expert,
+        "last_active": datetime.now()
+    }
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
