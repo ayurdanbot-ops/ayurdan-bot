@@ -118,7 +118,7 @@ vertexai.init(
     location="global"
 )
 
-model = GenerativeModel("gemini-3.5-flash")
+model = GenerativeModel("gemini-3-flash-preview")
 
 DB_PATH = "ayur_care.db"
 
@@ -222,10 +222,11 @@ def call_gemini_with_retry(contents, system_prompt=None):
 
     while attempts < max_attempts:
         try:
+            active_model_name = "gemini-3-flash-preview" if attempts == 0 else "gemini-2.5-flash"
             if system_prompt:
-                dynamic_model = GenerativeModel("gemini-3.5-flash", system_instruction=system_prompt)
+                dynamic_model = GenerativeModel(active_model_name, system_instruction=system_prompt)
             else:
-                dynamic_model = model
+                dynamic_model = model if attempts == 0 else GenerativeModel("gemini-2.5-flash")
 
             response = dynamic_model.generate_content(contents)
             text = response.text.strip()
