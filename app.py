@@ -11,9 +11,12 @@ import time
 import tempfile
 import importlib
 import requests
+import hashlib
+import re
 from flask import Flask, request, jsonify
 import vertexai
 from vertexai.generative_models import GenerativeModel, Part, SafetySetting, Content
+from google.cloud.aiplatform_v1.types import content as gapic_content_types
 from dotenv import load_dotenv
 from google.api_core import exceptions
 
@@ -85,6 +88,27 @@ def get_active_event_instructions() -> str:
     return "[UPCOMING AND ACTIVE HOSPITAL EVENTS]\n" + "\n".join(upcoming_lines)
 
 
+def trim_history(history):
+    if not history or len(history) <= 10:
+        return list(history)
+
+    state_keywords = [
+        "appointment", "booking", "confirm", "payment", "paid",
+        "screenshot", "receipt", "routed", "expert_", "ബുക്കിംഗ്",
+        "തീയതി", "പേയ്‌മെന്റ്", "സ്ഥിരീകരിച്ചു", "റൂട്ട്"
+    ]
+
+    needed_indices = set(range(min(4, len(history))))
+    needed_indices.update(range(max(0, len(history) - 10), len(history)))
+
+    for idx, h in enumerate(history):
+        content_lower = str(h.get("content", "")).lower()
+        if any(k in content_lower for k in state_keywords):
+            needed_indices.add(idx)
+
+    return [history[i] for i in sorted(needed_indices)]
+
+
 def build_gemini_contents(history_subset, current_user_parts):
     contents = []
     for h in history_subset:
@@ -95,7 +119,19 @@ def build_gemini_contents(history_subset, current_user_parts):
         if not contents and role == 'model':
             continue
 
-        part = Part.from_text(h['content'])
+        content_text = h.get('content', '')
+        if isinstance(content_text, list):
+            text_str = ""
+            for item in content_text:
+                if isinstance(item, str):
+                    text_str += item + " "
+                elif isinstance(item, dict) and "text" in item:
+                    text_str += item["text"] + " "
+            content_text = text_str.strip() or "[Media]"
+        else:
+            content_text = str(content_text)
+
+        part = Part.from_text(content_text)
         if contents and contents[-1].role == role:
             contents[-1].parts.append(part)
         else:
@@ -142,22 +178,47 @@ init_db()
 executor = ThreadPoolExecutor(max_workers=10)
 
 class MessageDeduplicator:
-    def __init__(self, size=1000):
-        self.processed_ids = OrderedDict()
-        self.size = size
+    def __init__(self, ttl=60):
+        self.processed = {}
+        self.ttl = ttl
         self.lock = threading.Lock()
 
-    def contains(self, msg_id):
+    def is_duplicate(self, msg_id, payload=None):
+        now = time.time()
+        payload_hash = None
+        if payload:
+            try:
+                payload_str = json.dumps(payload, sort_keys=True)
+                payload_hash = hashlib.md5(payload_str.encode()).hexdigest()
+            except Exception:
+                pass
+
         with self.lock:
-            return msg_id in self.processed_ids
+            expired = [k for k, ts in self.processed.items() if now - ts > self.ttl]
+            for k in expired:
+                del self.processed[k]
+
+            keys = []
+            if msg_id:
+                keys.append(str(msg_id))
+            if payload_hash:
+                keys.append(payload_hash)
+
+            for k in keys:
+                if k in self.processed:
+                    return True
+
+            for k in keys:
+                self.processed[k] = now
+            return False
+
+    def contains(self, msg_id):
+        return self.is_duplicate(msg_id)
 
     def add(self, msg_id):
-        with self.lock:
-            self.processed_ids[msg_id] = True
-            if len(self.processed_ids) > self.size:
-                self.processed_ids.popitem(last=False)
+        self.is_duplicate(msg_id)
 
-processed_messages = MessageDeduplicator()
+processed_messages = MessageDeduplicator(ttl=60)
 
 BLACKLIST = [p for p in os.environ.get("BLACKLIST_PHONES", "").split(",") if p] + ["+919961252698"]
 
@@ -175,8 +236,9 @@ def get_user_session(phone_number):
     return new_session
 
 def update_session(phone_number, history, assigned_expert):
+    trimmed_history = trim_history(history)
     user_sessions[phone_number] = {
-        "history": history,
+        "history": trimmed_history,
         "assigned_expert": assigned_expert,
         "last_active": datetime.now()
     }
@@ -189,7 +251,7 @@ def update_session(phone_number, history, assigned_expert):
             history = excluded.history,
             assigned_expert = excluded.assigned_expert,
             last_active = excluded.last_active
-    ''', (phone_number, json.dumps(history), assigned_expert, time.time()))
+    ''', (phone_number, json.dumps(trimmed_history), assigned_expert, time.time()))
     conn.commit()
     conn.close()
 
@@ -220,16 +282,62 @@ def call_gemini_with_retry(contents, system_prompt=None):
     attempts = 0
     max_attempts = 4
 
+    total_chars = 0
+    if system_prompt:
+        total_chars += len(system_prompt)
+    for c in contents:
+        if hasattr(c, 'parts'):
+            for p in c.parts:
+                if hasattr(p, 'text') and p.text:
+                    total_chars += len(p.text)
+                elif hasattr(p, '_raw_part') and hasattr(p._raw_part, 'text') and p._raw_part.text:
+                    total_chars += len(p._raw_part.text)
+
     while attempts < max_attempts:
+        active_model_name = "gemini-3-flash-preview" if attempts == 0 else "gemini-2.5-flash"
+        logging.info(f"[TOKEN AUDIT] model={active_model_name} approx_chars={total_chars} approx_tokens={total_chars // 4}")
+
         try:
-            active_model_name = "gemini-3-flash-preview" if attempts == 0 else "gemini-2.5-flash"
+            if active_model_name == "gemini-3-flash-preview":
+                gen_config = gapic_content_types.GenerationConfig(thinking_config={'thinking_level': 'LOW'})
+            else:
+                gen_config = gapic_content_types.GenerationConfig(thinking_config={'thinking_budget': 0})
+        except Exception:
+            gen_config = None
+
+        try:
             if system_prompt:
                 dynamic_model = GenerativeModel(active_model_name, system_instruction=system_prompt)
             else:
                 dynamic_model = model if attempts == 0 else GenerativeModel("gemini-2.5-flash")
 
-            response = dynamic_model.generate_content(contents)
-            text = response.text.strip()
+            try:
+                if gen_config is not None:
+                    response = dynamic_model.generate_content(contents, generation_config=gen_config)
+                else:
+                    response = dynamic_model.generate_content(contents)
+            except Exception as cfg_err:
+                cfg_err_str = str(cfg_err)
+                if "429" not in cfg_err_str and "Resource exhausted" not in cfg_err_str:
+                    logging.warning(f"Generation with thinking_config failed ({cfg_err_str}), retrying without thinking_config on {active_model_name}...")
+                    response = dynamic_model.generate_content(contents)
+                else:
+                    raise cfg_err
+
+            cleaned_parts = []
+            if hasattr(response, 'candidates') and response.candidates:
+                candidate = response.candidates[0]
+                if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                    for part in candidate.content.parts:
+                        if getattr(part, 'thought', False) is True:
+                            continue
+                        part_text = getattr(part, 'text', '')
+                        if part_text:
+                            cleaned_parts.append(part_text)
+
+            raw_text = "".join(cleaned_parts) if cleaned_parts else getattr(response, 'text', '')
+            text = re.sub(r'<thought>.*?</thought>', '', raw_text, flags=re.DOTALL).strip()
+
             if text:
                 return text
             break
@@ -313,16 +421,23 @@ def webhook():
     if not payload:
         return "OK", 200
 
+    event_type = payload.get("event", "") or payload.get("type", "")
+    if event_type in ["status", "message_status", "delivery", "read", "sent", "delivered", "failed", "ping", "ack"]:
+        return "OK", 200
+
     sender_id = payload.get("platformSenderId", "")
+    if not sender_id:
+        return "OK", 200
+
     if sender_id in BLACKLIST:
         logging.info(f"Blacklisted sender blocked: {sender_id}")
         return "OK", 200
+
     msg_id = payload.get('id')
-    if msg_id and processed_messages.contains(msg_id):
+    if processed_messages.is_duplicate(msg_id, payload):
         logging.info(f"Duplicate message ignored: {msg_id}")
         return "OK", 200
-    if msg_id:
-        processed_messages.add(msg_id)
+
     executor.submit(handle_message, payload)
     return "OK", 200
 
@@ -348,8 +463,7 @@ def handle_message(payload):
         history = session["history"]
         expert_id = session["assigned_expert"]
 
-        # Sliding window memory management: retain ONLY the last 10 messages (5 user/model pairs)
-        history_subset = history[-10:] if len(history) > 10 else history
+        history_subset = trim_history(history)
         history_text = "\n".join([f"{'User' if h['role'] == 'user' else 'AI'}: {h['content']}" for h in history_subset])
 
         if not expert_id:
@@ -391,8 +505,7 @@ def handle_message(payload):
         if response_text:
              history.append({"role": "model", "content": response_text})
 
-        if len(history) > 20:
-            history = history[-20:]
+        history = trim_history(history)
 
         if any(word in response_text.lower() for word in ["goodbye", "നന്ദി", "bye", "take care"]):
              if "goodbye" in response_text.lower() or "വിളിക്കാം" in response_text.lower() or "[HANDOVER]" in response_text:
