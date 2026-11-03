@@ -184,32 +184,19 @@ class MessageDeduplicator:
         self.lock = threading.Lock()
 
     def is_duplicate(self, msg_id, payload=None):
+        if not msg_id:
+            return False
         now = time.time()
-        payload_hash = None
-        if payload:
-            try:
-                payload_str = json.dumps(payload, sort_keys=True)
-                payload_hash = hashlib.md5(payload_str.encode()).hexdigest()
-            except Exception:
-                pass
-
+        key = str(msg_id)
         with self.lock:
             expired = [k for k, ts in self.processed.items() if now - ts > self.ttl]
             for k in expired:
                 del self.processed[k]
 
-            keys = []
-            if msg_id:
-                keys.append(str(msg_id))
-            if payload_hash:
-                keys.append(payload_hash)
+            if key in self.processed:
+                return True
 
-            for k in keys:
-                if k in self.processed:
-                    return True
-
-            for k in keys:
-                self.processed[k] = now
+            self.processed[key] = now
             return False
 
     def contains(self, msg_id):
@@ -297,13 +284,7 @@ def call_gemini_with_retry(contents, system_prompt=None):
         active_model_name = "gemini-3-flash-preview" if attempts == 0 else "gemini-2.5-flash"
         logging.info(f"[TOKEN AUDIT] model={active_model_name} approx_chars={total_chars} approx_tokens={total_chars // 4}")
 
-        try:
-            if active_model_name == "gemini-3-flash-preview":
-                gen_config = gapic_content_types.GenerationConfig(thinking_config={'thinking_level': 'LOW'})
-            else:
-                gen_config = gapic_content_types.GenerationConfig(thinking_config={'thinking_budget': 0})
-        except Exception:
-            gen_config = None
+        gen_config = {"thinking_config": {"thinking_budget": 0}}
 
         try:
             if system_prompt:
